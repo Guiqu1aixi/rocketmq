@@ -17,14 +17,15 @@
 
 package org.apache.rocketmq.test.util.data.collect;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.test.util.data.collect.impl.ListDataCollectorImpl;
 import org.apache.rocketmq.test.util.data.collect.impl.MapDataCollectorImpl;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class DataCollectorManager {
     private static DataCollectorManager instance = new DataCollectorManager();
-    private Map<String, DataCollector> collectMap = new HashMap<String, DataCollector>();
+    private Map<String, DataCollector> collectMap = new HashMap<>();
     private Object lock = new Object();
 
     private DataCollectorManager() {

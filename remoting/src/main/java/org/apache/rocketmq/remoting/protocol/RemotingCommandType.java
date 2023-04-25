@@ -17,6 +17,15 @@
 package org.apache.rocketmq.remoting.protocol;
 
 public enum RemotingCommandType {
+
+    /**
+     * request
+     */
     REQUEST_COMMAND,
-    RESPONSE_COMMAND;
+
+    /**
+     * response
+     */
+    RESPONSE_COMMAND
+
 }

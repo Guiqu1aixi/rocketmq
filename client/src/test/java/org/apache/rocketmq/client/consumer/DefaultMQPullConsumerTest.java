@@ -91,12 +91,9 @@ public class DefaultMQPullConsumerTest {
 
     @Test
     public void testPullMessage_Success() throws Exception {
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock mock) throws Throwable {
-                PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                return createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(new MessageExt()));
-            }
+        doAnswer(mock -> {
+            PullMessageRequestHeader requestHeader = mock.getArgument(1);
+            return createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(new MessageExt()));
         }).when(mQClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
 
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 0);

@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -34,6 +31,10 @@ import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -92,12 +93,9 @@ public class RebalancePushImplTest {
         when(mqClientInstance.getClientId()).thenReturn(consumerGroup);
         when(defaultMQPushConsumer.getOffsetStore()).thenReturn(offsetStore);
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                return null;
-            }
-        }).when(defaultMQPushConsumer).executePullRequestImmediately(any(PullRequest.class));
+        doAnswer(invocation -> null)
+            .when(defaultMQPushConsumer)
+            .executePullRequestImmediately(any(PullRequest.class));
     }
 
     @Test

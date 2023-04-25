@@ -26,12 +26,24 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * https://www.jianshu.com/p/a0a51fd79f62
+ */
 public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     private static final int FRAME_MAX_LENGTH =
         Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "16777216"));
 
+    /**
+     * 传递至下个 handler 时，舍弃数据包长度信息
+     *
+     * maxFrameLength      最大包长度
+     * lengthFieldOffset   数据包长度字段偏移量
+     * lengthFieldLength   数据包长度字段字长
+     * lengthAdjustment    补偿长度
+     * initialBytesToStrip 要剥离的初始字节数
+     */
     public NettyDecoder() {
         super(FRAME_MAX_LENGTH, 0, 4, 0, 4);
     }
@@ -59,4 +71,5 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
 
         return null;
     }
+
 }

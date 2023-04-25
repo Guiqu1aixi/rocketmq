@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -32,8 +29,17 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 推模式
+ */
 public class RebalancePushImpl extends RebalanceImpl {
+
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
+
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
 
     public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
@@ -77,7 +83,7 @@ public class RebalancePushImpl extends RebalanceImpl {
             }
         }
 
-        // notify broker
+        /* notify broker */
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
     }
 
@@ -97,7 +103,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                 } else {
                     log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
                         mq,
-                        pq.getTryUnlockTimes());
+                        pq.getTryUnlockTimes()
+                    );
 
                     pq.incTryUnlockTimes();
                 }
@@ -110,17 +117,17 @@ public class RebalancePushImpl extends RebalanceImpl {
         return true;
     }
 
-    private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
-
+    private boolean unlockDelay(MessageQueue mq, ProcessQueue pq) {
         if (pq.hasTempMessage()) {
             log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
-            this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {
-                @Override
-                public void run() {
+            this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(
+                () -> {
                     log.info("[{}]unlockDelay, execute at once {}", mq.hashCode(), mq);
                     RebalancePushImpl.this.unlock(mq, true);
-                }
-            }, UNLOCK_DELAY_TIME_MILLS, TimeUnit.MILLISECONDS);
+                },
+                UNLOCK_DELAY_TIME_MILLS,
+                TimeUnit.MILLISECONDS
+            );
         } else {
             this.unlock(mq, true);
         }
@@ -133,15 +140,15 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
-    public void removeDirtyOffset(final MessageQueue mq) {
+    public void removeDirtyOffset(MessageQueue mq) {
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
     @Override
     public long computePullFromWhere(MessageQueue mq) {
-        long result = -1;
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
+        long result = -1;
         switch (consumeFromWhere) {
             case CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST:
             case CONSUME_FROM_MIN_OFFSET:
@@ -159,11 +166,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            result = -1;
                         }
                     }
-                } else {
-                    result = -1;
                 }
                 break;
             }
@@ -203,7 +207,6 @@ public class RebalancePushImpl extends RebalanceImpl {
                 }
                 break;
             }
-
             default:
                 break;
         }
@@ -218,4 +221,5 @@ public class RebalancePushImpl extends RebalanceImpl {
             log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
         }
     }
+
 }

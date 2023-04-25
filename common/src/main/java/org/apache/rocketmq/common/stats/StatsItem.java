@@ -90,66 +90,77 @@ public class StatsItem {
     }
 
     public void init() {
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     samplingInSeconds();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, 0, 10, TimeUnit.SECONDS);
+            },
+            0,
+            10,
+            TimeUnit.SECONDS
+        );
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     samplingInMinutes();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, 0, 10, TimeUnit.MINUTES);
+            },
+            0,
+            10,
+            TimeUnit.MINUTES
+        );
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     samplingInHour();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, 0, 1, TimeUnit.HOURS);
+            },
+            0,
+            1,
+            TimeUnit.HOURS
+        );
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     printAtMinutes();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
+            },
+            Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()),
+            1000 * 60,
+            TimeUnit.MILLISECONDS
+        );
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     printAtHour();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, Math.abs(UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
+            },
+            Math.abs(UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis()),
+            1000 * 60 * 60,
+            TimeUnit.MILLISECONDS
+        );
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     printAtDay();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, Math.abs(UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis()) - 2000, 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);
+            },
+            Math.abs(UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis()) - 2000,
+            1000 * 60 * 60 * 24,
+            TimeUnit.MILLISECONDS
+        );
     }
 
     public void samplingInSeconds() {
@@ -157,8 +168,9 @@ public class StatsItem {
             if (this.csListMinute.size() == 0) {
                 this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
             }
-            this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value
-                .get()));
+            this.csListMinute.add(
+                new CallSnapshot(System.currentTimeMillis(), this.times.get(), this.value.get())
+            );
             if (this.csListMinute.size() > 7) {
                 this.csListMinute.removeFirst();
             }

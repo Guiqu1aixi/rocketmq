@@ -18,11 +18,13 @@
 package org.apache.rocketmq.client.latency;
 
 public interface LatencyFaultTolerance<T> {
-    void updateFaultItem(final T name, final long currentLatency, final long notAvailableDuration);
 
-    boolean isAvailable(final T name);
+    void updateFaultItem(T name, long currentLatency, long notAvailableDuration);
 
-    void remove(final T name);
+    boolean isAvailable(T name);
+
+    void remove(T name);
 
     T pickOneAtLeast();
+
 }

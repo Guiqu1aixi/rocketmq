@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
-import java.util.List;
-import java.util.Map;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -27,6 +25,9 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.sendresult.ResultWrapper;
+
+import java.util.List;
+import java.util.Map;
 
 public class RMQNormalProducer extends AbstractMQProducer {
     private static Logger logger = Logger.getLogger(RMQNormalProducer.class);

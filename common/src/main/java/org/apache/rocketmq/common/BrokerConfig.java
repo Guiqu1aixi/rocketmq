@@ -27,6 +27,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class BrokerConfig {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
@@ -56,11 +57,16 @@ public class BrokerConfig {
     private String msgTraceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
     @ImportantField
     private boolean traceTopicEnable = false;
+
     /**
-     * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x, the default
-     * value is 1.
+     * thread numbers for send message thread pool, since spin lock will be used by default since 4.0.x,
+     * the default value is 1
+     * 线程数1可以保证消息的顺序处理
+     *
+     * 16 + Runtime.getRuntime().availableProcessors() * 4;
      */
-    private int sendMessageThreadPoolNums = 1; //16 + Runtime.getRuntime().availableProcessors() * 4;
+    private int sendMessageThreadPoolNums = 1;
+
     private int pullMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int processReplyMessageThreadPoolNums = 16 + Runtime.getRuntime().availableProcessors() * 2;
     private int queryMessageThreadPoolNums = 8 + Runtime.getRuntime().availableProcessors();
@@ -83,17 +89,28 @@ public class BrokerConfig {
     private boolean rejectTransactionMessage = false;
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
+
     private int sendThreadPoolQueueCapacity = 10000;
+
     private int pullThreadPoolQueueCapacity = 100000;
+
     private int replyThreadPoolQueueCapacity = 10000;
+
     private int queryThreadPoolQueueCapacity = 20000;
+
     private int clientManagerThreadPoolQueueCapacity = 1000000;
+
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
+
     private int heartbeatThreadPoolQueueCapacity = 50000;
+
     private int endTransactionPoolQueueCapacity = 100000;
 
     private int filterServerNums = 0;
 
+    /**
+     * 是否开启长轮训机制
+     */
     private boolean longPollingEnable = true;
 
     private long shortPollingTimeMills = 1000;
@@ -119,8 +136,16 @@ public class BrokerConfig {
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
+    /**
+     * 是否开启快速失败机制
+     */
     private boolean brokerFastFailureEnable = true;
+
+    /**
+     * 队列中任务排队时间超过 waitTimeMillsInSendQueue 直接被清理，快速失败，返回client
+     */
     private long waitTimeMillsInSendQueue = 200;
+
     private long waitTimeMillsInPullQueue = 5 * 1000;
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
     private long waitTimeMillsInTransactionQueue = 3 * 1000;
@@ -129,22 +154,24 @@ public class BrokerConfig {
 
     private boolean traceOn = true;
 
-    // Switch of filter bit map calculation.
-    // If switch on:
-    // 1. Calculate filter bit map when construct queue.
-    // 2. Filter bit map will be saved to consume queue extend file if allowed.
+    /**
+     * Switch of filter bit map calculation
+     * If switch on:
+     * 1. Calculate filter bit map when construct queue
+     * 2. Filter bit map will be saved to consume queue extend file if allowed
+     */
     private boolean enableCalcFilterBitMap = false;
 
-    // Expect num of consumers will use filter.
+    /* Expect num of consumers will use filter */
     private int expectConsumerNumUseFilter = 32;
 
-    // Error rate of bloom filter, 1~100.
+    /* Error rate of bloom filter, 1~100 */
     private int maxErrorRateOfBloomFilter = 20;
 
-    //how long to clean filter data after dead.Default: 24h
+    /* how long to clean filter data after dead.Default: 24h */
     private long filterDataCleanTimeSpan = 24 * 3600 * 1000;
 
-    // whether do filter when retry.
+    /* whether do filter when retry */
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
 
@@ -257,7 +284,7 @@ public class BrokerConfig {
         return slaveReadEnable;
     }
 
-    public void setSlaveReadEnable(final boolean slaveReadEnable) {
+    public void setSlaveReadEnable(boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
     }
 

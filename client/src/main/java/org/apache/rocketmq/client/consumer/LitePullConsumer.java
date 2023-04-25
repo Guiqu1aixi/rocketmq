@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.Collection;
+import java.util.List;
 
 public interface LitePullConsumer {
 
@@ -202,4 +202,5 @@ public interface LitePullConsumer {
      * @param messageQueue
      */
     void seekToEnd(MessageQueue messageQueue)throws MQClientException;
+
 }

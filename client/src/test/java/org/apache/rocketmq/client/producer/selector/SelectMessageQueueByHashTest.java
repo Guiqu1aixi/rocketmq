@@ -34,7 +34,7 @@ public class SelectMessageQueueByHashTest {
 
         Message message = new Message(topic, new byte[] {});
 
-        List<MessageQueue> messageQueues = new ArrayList<MessageQueue>();
+        List<MessageQueue> messageQueues = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             MessageQueue messageQueue = new MessageQueue(topic, "DefaultBroker", i);
             messageQueues.add(messageQueue);
@@ -45,7 +45,7 @@ public class SelectMessageQueueByHashTest {
         MessageQueue selected = selector.select(messageQueues, message, orderId);
         assertThat(selector.select(messageQueues, message, anotherOrderId)).isNotEqualTo(selected);
 
-        //No exception is thrown while order Id hashcode is Integer.MIN
+        /* No exception is thrown while order Id hashcode is Integer.MIN */
         anotherOrderId = "polygenelubricants";
         selector.select(messageQueues, message, anotherOrderId);
         anotherOrderId = "GydZG_";

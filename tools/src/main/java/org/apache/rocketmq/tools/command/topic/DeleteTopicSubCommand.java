@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -31,6 +28,10 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class DeleteTopicSubCommand implements SubCommand {
     public static void deleteTopic(final DefaultMQAdminExt adminExt,
@@ -45,7 +46,7 @@ public class DeleteTopicSubCommand implements SubCommand {
         Set<String> nameServerSet = null;
         if (adminExt.getNamesrvAddr() != null) {
             String[] ns = adminExt.getNamesrvAddr().trim().split(";");
-            nameServerSet = new HashSet(Arrays.asList(ns));
+            nameServerSet = new HashSet<>(Arrays.asList(ns));
         }
 
         adminExt.deleteTopicInNameServer(nameServerSet, topic);

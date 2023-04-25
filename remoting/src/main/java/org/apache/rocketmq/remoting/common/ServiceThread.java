@@ -45,7 +45,7 @@ public abstract class ServiceThread implements Runnable {
         this.shutdown(false);
     }
 
-    public void shutdown(final boolean interrupt) {
+    public void shutdown(boolean interrupt) {
         this.stopped = true;
         log.info("shutdown thread " + this.getServiceName() + " interrupt " + interrupt);
         synchronized (this) {
@@ -77,4 +77,5 @@ public abstract class ServiceThread implements Runnable {
     public boolean isStopped() {
         return stopped;
     }
+
 }

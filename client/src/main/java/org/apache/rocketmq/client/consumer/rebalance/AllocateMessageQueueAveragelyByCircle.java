@@ -16,14 +16,16 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
+ * 平均轮询算法
  * Cycle average Hashing queue algorithm
  */
 public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQueueStrategy {
@@ -42,12 +44,13 @@ public class AllocateMessageQueueAveragelyByCircle implements AllocateMessageQue
             throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,
                 currentCID,
-                cidAll);
+                cidAll
+            );
             return result;
         }
 

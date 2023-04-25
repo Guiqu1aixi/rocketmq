@@ -23,4 +23,5 @@ package org.apache.rocketmq.store;
 public interface CommitLogDispatcher {
 
     void dispatch(final DispatchRequest request);
+
 }

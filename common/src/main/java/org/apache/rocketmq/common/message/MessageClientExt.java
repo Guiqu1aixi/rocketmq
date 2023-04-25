@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.message;
 
+/**
+ * Client拉取到消息的实体
+ */
 public class MessageClientExt extends MessageExt {
 
     public String getOffsetMsgId() {
@@ -26,6 +29,9 @@ public class MessageClientExt extends MessageExt {
         super.setMsgId(offsetMsgId);
     }
 
+    /**
+     * 这里重写了，优先返回msgId
+     */
     @Override
     public String getMsgId() {
         String uniqID = MessageClientIDSetter.getUniqID(this);
@@ -37,7 +43,7 @@ public class MessageClientExt extends MessageExt {
     }
 
     public void setMsgId(String msgId) {
-        //DO NOTHING
-        //MessageClientIDSetter.setUniqID(this);
+
     }
+
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.acl.plain;
 
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.acl.common.AclException;
@@ -25,6 +23,9 @@ import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class RemoteAddressStrategyFactory {
 

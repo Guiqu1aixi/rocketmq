@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -24,12 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class StoreStatsService extends ServiceThread {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private static final int FREQUENCY_OF_SAMPLING = 1000;
@@ -44,18 +46,18 @@ public class StoreStatsService extends ServiceThread {
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
 
     private final ConcurrentMap<String, AtomicLong> putMessageTopicTimesTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
+        new ConcurrentHashMap<>(128);
     private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
+        new ConcurrentHashMap<>(128);
 
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
-    private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> putTimesList = new LinkedList<>();
 
-    private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<CallSnapshot>();
-    private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<CallSnapshot>();
-    private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<CallSnapshot>();
+    private final LinkedList<CallSnapshot> getTimesFoundList = new LinkedList<>();
+    private final LinkedList<CallSnapshot> getTimesMissList = new LinkedList<>();
+    private final LinkedList<CallSnapshot> transferedMsgCountList = new LinkedList<>();
     private volatile AtomicLong[] putMessageDistributeTime;
     private long messageStoreBootTimestamp = System.currentTimeMillis();
     private volatile long putMessageEntireTimeMax = 0;
@@ -509,11 +511,11 @@ public class StoreStatsService extends ServiceThread {
                 this.getGetTransferedTps(printTPSInterval)
             );
 
-            final AtomicLong[] times = this.initPutMessageDistributeTime();
+            AtomicLong[] times = this.initPutMessageDistributeTime();
             if (null == times)
                 return;
 
-            final StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             long totalPut = 0;
             for (int i = 0; i < times.length; i++) {
                 long value = times[i].get();

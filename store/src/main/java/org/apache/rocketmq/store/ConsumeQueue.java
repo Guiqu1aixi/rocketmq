@@ -16,18 +16,25 @@
  */
 package org.apache.rocketmq.store;
 
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.List;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.List;
+
 public class ConsumeQueue {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    /**
+     * Py offset: 8     物理偏移量
+     * Message size: 4  消息大小
+     * HashCode: 8      Message tag HashCode
+     */
     public static final int CQ_STORE_UNIT_SIZE = 20;
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
@@ -45,11 +52,9 @@ public class ConsumeQueue {
     private ConsumeQueueExt consumeQueueExt = null;
 
     public ConsumeQueue(
-        final String topic,
-        final int queueId,
-        final String storePath,
-        final int mappedFileSize,
-        final DefaultMessageStore defaultMessageStore) {
+        String topic, int queueId, String storePath, int mappedFileSize,
+        DefaultMessageStore defaultMessageStore
+    ) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.defaultMessageStore = defaultMessageStore;
@@ -57,18 +62,14 @@ public class ConsumeQueue {
         this.topic = topic;
         this.queueId = queueId;
 
-        String queueDir = this.storePath
-            + File.separator + topic
-            + File.separator + queueId;
+        String queueDir = this.storePath + File.separator + topic + File.separator + queueId;
 
         this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
-
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
 
         if (defaultMessageStore.getMessageStoreConfig().isEnableConsumeQueueExt()) {
             this.consumeQueueExt = new ConsumeQueueExt(
-                topic,
-                queueId,
+                topic, queueId,
                 StorePathConfigHelper.getStorePathConsumeQueueExt(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir()),
                 defaultMessageStore.getMessageStoreConfig().getMappedFileSizeConsumeQueueExt(),
                 defaultMessageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt()
@@ -152,12 +153,16 @@ public class ConsumeQueue {
         }
     }
 
-    public long getOffsetInQueueByTime(final long timestamp) {
+    /**
+     * 根据时间戳获取ConsumeQueue中对应的消费偏移量
+     * 二分法
+     * 重置消费位点时需要根据时间查询消费偏移量
+     */
+    public long getOffsetInQueueByTime(long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {
-            long offset = 0;
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
-            int high = 0;
+            int offset, high;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
             long leftIndexValue = -1L, rightIndexValue = -1L;
             long minPhysicOffset = this.defaultMessageStore.getMinPhyOffset();
@@ -196,14 +201,11 @@ public class ConsumeQueue {
                     }
 
                     if (targetOffset != -1) {
-
                         offset = targetOffset;
                     } else {
                         if (leftIndexValue == -1) {
-
                             offset = rightOffset;
                         } else if (rightIndexValue == -1) {
-
                             offset = leftOffset;
                         } else {
                             offset =
@@ -218,11 +220,11 @@ public class ConsumeQueue {
                 }
             }
         }
+
         return 0;
     }
 
     public void truncateDirtyLogicFiles(long phyOffet) {
-
         int logicFileSize = this.mappedFileSize;
 
         this.maxPhysicOffset = phyOffet;
@@ -376,11 +378,16 @@ public class ConsumeQueue {
         return this.minLogicOffset / CQ_STORE_UNIT_SIZE;
     }
 
+    /**
+     * Message Dispatch
+     * Build ConsumeQueue
+     */
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
-        final int maxRetries = 30;
+        int maxRetries = 30;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
             long tagsCode = request.getTagsCode();
+            /* 默认情况不会走进这个逻辑 */
             if (isExtWriteEnable()) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                 cqExtUnit.setFilterBitMap(request.getBitMap());
@@ -395,17 +402,20 @@ public class ConsumeQueue {
                         topic, queueId, request.getCommitLogOffset());
                 }
             }
-            boolean result = this.putMessagePositionInfo(request.getCommitLogOffset(),
-                request.getMsgSize(), tagsCode, request.getConsumeQueueOffset());
+
+            boolean result = this.putMessagePositionInfo(
+                request.getCommitLogOffset(), request.getMsgSize(), tagsCode, request.getConsumeQueueOffset()
+            );
             if (result) {
                 if (this.defaultMessageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE ||
-                    this.defaultMessageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
+                    this.defaultMessageStore.getMessageStoreConfig().isEnableDLegerCommitLog()
+                ) {
                     this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
                 this.defaultMessageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
                 return;
             } else {
-                // XXX: warn and notify me
+                /* XXX: warn and notify me */
                 log.warn("[BUG]put commit log position info to " + topic + ":" + queueId + " " + request.getCommitLogOffset()
                     + " failed, retry " + i + " times");
 
@@ -417,30 +427,25 @@ public class ConsumeQueue {
             }
         }
 
-        // XXX: warn and notify me
+        /* XXX: warn and notify me */
         log.error("[BUG]consume queue can not write, {} {}", this.topic, this.queueId);
         this.defaultMessageStore.getRunningFlags().makeLogicsQueueError();
     }
 
-    private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
-        final long cqOffset) {
-
+    private boolean putMessagePositionInfo(long offset, int size, long tagsCode, long cqOffset) {
         if (offset + size <= this.maxPhysicOffset) {
             log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
             return true;
         }
-
+        /* 这个是一个可用的临时buffer, flip()一下是为了写时position == 0， limit()是为了调整可读写指针 limit == CQ_STORE_UNIT_SIZE */
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
-        this.byteBufferIndex.putLong(offset);
-        this.byteBufferIndex.putInt(size);
-        this.byteBufferIndex.putLong(tagsCode);
+        this.byteBufferIndex.putLong(offset).putInt(size).putLong(tagsCode);
 
-        final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
+        long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
 
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
-
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
                 this.minLogicOffset = expectLogicOffset;
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
@@ -462,11 +467,8 @@ public class ConsumeQueue {
                 if (expectLogicOffset != currentLogicOffset) {
                     LOG_ERROR.warn(
                         "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
-                        expectLogicOffset,
-                        currentLogicOffset,
-                        this.topic,
-                        this.queueId,
-                        expectLogicOffset - currentLogicOffset
+                        expectLogicOffset, currentLogicOffset,
+                        this.topic, this.queueId, expectLogicOffset - currentLogicOffset
                     );
                 }
             }
@@ -476,7 +478,7 @@ public class ConsumeQueue {
         return false;
     }
 
-    private void fillPreBlank(final MappedFile mappedFile, final long untilWhere) {
+    private void fillPreBlank(MappedFile mappedFile, long untilWhere) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
         byteBuffer.putLong(0L);
         byteBuffer.putInt(Integer.MAX_VALUE);
@@ -488,7 +490,7 @@ public class ConsumeQueue {
         }
     }
 
-    public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
+    public SelectMappedBufferResult getIndexBuffer(long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;
         if (offset >= this.getMinLogicOffset()) {
@@ -584,4 +586,5 @@ public class ConsumeQueue {
     public boolean isExtAddr(long tagsCode) {
         return ConsumeQueueExt.isExtAddr(tagsCode);
     }
+
 }

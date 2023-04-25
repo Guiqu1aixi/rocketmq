@@ -31,7 +31,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -144,31 +143,27 @@ public class Consumer {
             }
         }
 
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                MessageExt msg = msgs.get(0);
-                long now = System.currentTimeMillis();
+        consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            MessageExt msg = msgs.get(0);
+            long now = System.currentTimeMillis();
 
-                statsBenchmarkConsumer.getReceiveMessageTotalCount().incrementAndGet();
+            statsBenchmarkConsumer.getReceiveMessageTotalCount().incrementAndGet();
 
-                long born2ConsumerRT = now - msg.getBornTimestamp();
-                statsBenchmarkConsumer.getBorn2ConsumerTotalRT().addAndGet(born2ConsumerRT);
+            long born2ConsumerRT = now - msg.getBornTimestamp();
+            statsBenchmarkConsumer.getBorn2ConsumerTotalRT().addAndGet(born2ConsumerRT);
 
-                long store2ConsumerRT = now - msg.getStoreTimestamp();
-                statsBenchmarkConsumer.getStore2ConsumerTotalRT().addAndGet(store2ConsumerRT);
+            long store2ConsumerRT = now - msg.getStoreTimestamp();
+            statsBenchmarkConsumer.getStore2ConsumerTotalRT().addAndGet(store2ConsumerRT);
 
-                compareAndSetMax(statsBenchmarkConsumer.getBorn2ConsumerMaxRT(), born2ConsumerRT);
+            compareAndSetMax(statsBenchmarkConsumer.getBorn2ConsumerMaxRT(), born2ConsumerRT);
 
-                compareAndSetMax(statsBenchmarkConsumer.getStore2ConsumerMaxRT(), store2ConsumerRT);
+            compareAndSetMax(statsBenchmarkConsumer.getStore2ConsumerMaxRT(), store2ConsumerRT);
 
-                if (ThreadLocalRandom.current().nextDouble() < failRate) {
-                    statsBenchmarkConsumer.getFailCount().incrementAndGet();
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                } else {
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-                }
+            if (ThreadLocalRandom.current().nextDouble() < failRate) {
+                statsBenchmarkConsumer.getFailCount().incrementAndGet();
+                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+            } else {
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
 

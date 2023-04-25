@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -31,6 +28,10 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Set;
 
 public class PrintMessageSubCommand implements SubCommand {
 

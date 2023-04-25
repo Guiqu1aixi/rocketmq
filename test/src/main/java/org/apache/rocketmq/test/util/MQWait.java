@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.test.util;
 
+import org.apache.log4j.Logger;
+import org.apache.rocketmq.test.listener.AbstractListener;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import org.apache.log4j.Logger;
-import org.apache.rocketmq.test.listener.AbstractListener;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -32,7 +33,7 @@ public class MQWait {
         AbstractListener... listeners) {
         boolean recvAll = false;
         long startTime = System.currentTimeMillis();
-        Collection<Object> noDupMsgs = new ArrayList<Object>();
+        Collection<Object> noDupMsgs = new ArrayList<>();
         while (!recvAll) {
             if ((System.currentTimeMillis() - startTime) < timeoutMills) {
                 noDupMsgs.clear();

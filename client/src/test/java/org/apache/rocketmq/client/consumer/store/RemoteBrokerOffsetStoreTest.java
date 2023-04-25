@@ -98,13 +98,10 @@ public class RemoteBrokerOffsetStoreTest {
         OffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, group);
         final MessageQueue messageQueue = new MessageQueue(topic, brokerName, 3);
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock mock) throws Throwable {
-                UpdateConsumerOffsetRequestHeader updateRequestHeader = mock.getArgument(1);
-                when(mqClientAPI.queryConsumerOffset(anyString(), any(QueryConsumerOffsetRequestHeader.class), anyLong())).thenReturn(updateRequestHeader.getCommitOffset());
-                return null;
-            }
+        doAnswer(mock -> {
+            UpdateConsumerOffsetRequestHeader updateRequestHeader = mock.getArgument(1);
+            when(mqClientAPI.queryConsumerOffset(anyString(), any(QueryConsumerOffsetRequestHeader.class), anyLong())).thenReturn(updateRequestHeader.getCommitOffset());
+            return null;
         }).when(mqClientAPI).updateConsumerOffsetOneway(any(String.class), any(UpdateConsumerOffsetRequestHeader.class), any(Long.class));
 
         offsetStore.updateOffset(messageQueue, 1024, false);

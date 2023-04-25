@@ -18,6 +18,7 @@
 package org.apache.rocketmq.remoting.protocol;
 
 public enum LanguageCode {
+
     JAVA((byte) 0),
     CPP((byte) 1),
     DOTNET((byte) 2),
@@ -49,4 +50,5 @@ public enum LanguageCode {
     public byte getCode() {
         return code;
     }
+
 }

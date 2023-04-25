@@ -18,8 +18,13 @@ package org.apache.rocketmq.store;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * 引用计数法
+ */
 public abstract class ReferenceResource {
+
     protected final AtomicLong refCount = new AtomicLong(1);
+
     protected volatile boolean available = true;
     protected volatile boolean cleanupOver = false;
     private volatile long firstShutdownTimestamp = 0;
@@ -59,7 +64,6 @@ public abstract class ReferenceResource {
             return;
 
         synchronized (this) {
-
             this.cleanupOver = this.cleanup(value);
         }
     }
@@ -68,9 +72,10 @@ public abstract class ReferenceResource {
         return this.refCount.get();
     }
 
-    public abstract boolean cleanup(final long currentRef);
+    public abstract boolean cleanup(long currentRef);
 
     public boolean isCleanupOver() {
         return this.refCount.get() <= 0 && this.cleanupOver;
     }
+
 }

@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -32,6 +29,10 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 public class ConsumerSubCommand implements SubCommand {
 

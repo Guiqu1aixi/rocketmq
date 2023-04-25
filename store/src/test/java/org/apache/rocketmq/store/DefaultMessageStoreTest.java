@@ -17,6 +17,19 @@
 
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.store.config.FlushDiskType;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
@@ -32,18 +45,6 @@ import java.nio.channels.OverlappingFileLockException;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.store.config.FlushDiskType;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.config.StorePathConfigHelper;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -51,9 +52,10 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMessageStoreTest {
+
     private final String StoreMessage = "Once, there was a chance for me!";
     private int QUEUE_TOTAL = 100;
-    private AtomicInteger QueueId = new AtomicInteger(0);
+    private final AtomicInteger QueueId = new AtomicInteger(0);
     private SocketAddress BornHost;
     private SocketAddress StoreHost;
     private byte[] MessageBody;
@@ -64,7 +66,8 @@ public class DefaultMessageStoreTest {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
-        messageStore = buildMessageStore();
+        /* messageStore = buildMessageStore(); */
+        messageStore = lightMessageStore();
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -102,6 +105,20 @@ public class DefaultMessageStoreTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
+    }
+
+    /**
+     * 轻量级 DefaultMessageStore
+     */
+    private MessageStore lightMessageStore() throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setMappedFileSizeCommitLog(512);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(256);
+        messageStoreConfig.setMaxHashSlotNum(10);
+        messageStoreConfig.setMaxIndexNum(200);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setFlushIntervalConsumeQueue(1);
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -474,7 +491,6 @@ public class DefaultMessageStoreTest {
             GetMessageResult result = master.getMessage("GROUP_A", "TOPIC_A", 0, i, 1024 * 1024, null);
             assertThat(result).isNotNull();
             result.release();
-
         }
     }
 
@@ -504,7 +520,6 @@ public class DefaultMessageStoreTest {
         GetMessageResult getMessageResult45 = messageStore.getMessage(group, topic, 0, 0, 10, null);
         assertThat(getMessageResult45.getMessageBufferList().size()).isEqualTo(10);
         getMessageResult45.release();
-
     }
 
     @Test
@@ -524,7 +539,7 @@ public class DefaultMessageStoreTest {
         long maxPhyOffset = messageStore.getMaxPhyOffset();
         long maxCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
 
-        //1.just reboot
+        /* 1.just reboot */
         messageStore.shutdown();
         messageStore = buildMessageStore();
         boolean load = messageStore.load();
@@ -533,7 +548,7 @@ public class DefaultMessageStoreTest {
         assertTrue(maxPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(maxCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
-        //2.damage commitlog and reboot normal
+        /* 2.damage commitlog and reboot normal */
         for (int i = 0; i < 100; i++) {
             MessageExtBrokerInner messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
@@ -549,13 +564,12 @@ public class DefaultMessageStoreTest {
         messageExtBrokerInner.setTopic(topic);
         messageExtBrokerInner.setQueueId(0);
         messageStore.putMessage(messageExtBrokerInner);
-
         messageStore.shutdown();
 
-        //damage last message
+        /* damage last message */
         damageCommitlog(secondLastPhyOffset);
 
-        //reboot
+        /* reboot */
         messageStore = buildMessageStore();
         load = messageStore.load();
         assertTrue(load);
@@ -563,7 +577,7 @@ public class DefaultMessageStoreTest {
         assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
-        //3.damage commitlog and reboot abnormal
+        /* 3.damage commitlog and reboot abnormal */
         for (int i = 0; i < 100; i++) {
             messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
@@ -581,9 +595,9 @@ public class DefaultMessageStoreTest {
         messageStore.putMessage(messageExtBrokerInner);
         messageStore.shutdown();
 
-        //damage last message
+        /* damage last message */
         damageCommitlog(secondLastPhyOffset);
-        //add abort file
+        /* add abort file */
         String fileName = StorePathConfigHelper.getAbortFile(((DefaultMessageStore) messageStore).getMessageStoreConfig().getStorePathRootDir());
         File file = new File(fileName);
         MappedFile.ensureDirOK(file.getParent());
@@ -596,7 +610,7 @@ public class DefaultMessageStoreTest {
         assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
-        //message write again
+        /* message write again */
         for (int i = 0; i < 100; i++) {
             messageExtBrokerInner = buildMessage();
             messageExtBrokerInner.setTopic(topic);
@@ -631,4 +645,5 @@ public class DefaultMessageStoreTest {
             byte[] filterBitMap, Map<String, String> properties) {
         }
     }
+
 }

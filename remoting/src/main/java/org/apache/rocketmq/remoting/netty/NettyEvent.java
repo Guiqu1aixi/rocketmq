@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.netty;
 import io.netty.channel.Channel;
 
 public class NettyEvent {
+
     private final NettyEventType type;
     private final String remoteAddr;
     private final Channel channel;
@@ -45,4 +46,5 @@ public class NettyEvent {
     public String toString() {
         return "NettyEvent [type=" + type + ", remoteAddr=" + remoteAddr + ", channel=" + channel + "]";
     }
+
 }

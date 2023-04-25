@@ -16,34 +16,54 @@
  */
 package org.apache.rocketmq.store;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * MappedFile 的管理容器，是对存储目录的封装
+ */
 public class MappedFileQueue {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
+    /**
+     * 存储目录
+     */
     private final String storePath;
 
+    /**
+     * 单个文件的存储大小
+     */
     private final int mappedFileSize;
 
-    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
+    /**
+     * MappedFile 文件集合
+     */
+    private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<>();
 
+    /**
+     * 创建 MappedFile 服务类
+     */
     private final AllocateMappedFileService allocateMappedFileService;
 
+    /**
+     * 当前刷盘指针，表示该指针之前的所有数据已经持久化到磁盘
+     */
     private long flushedWhere = 0;
+
+    /**
+     * 当前数据提交指针，内存中 ByteBuffer 当前的写指针，该值大于 flushedWhere
+     */
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -56,7 +76,6 @@ public class MappedFileQueue {
     }
 
     public void checkSelf() {
-
         if (!this.mappedFiles.isEmpty()) {
             Iterator<MappedFile> iterator = mappedFiles.iterator();
             MappedFile pre = null;
@@ -74,12 +93,19 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 根据时间戳查找 MappedFile
+     */
     public MappedFile getMappedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
             return null;
 
+        /**
+         * 从第一个往后遍历，找到第一个最后一次更新时间大于待查找时间戳的文件
+         * 不存在的话返回最后一个
+         */
         for (int i = 0; i < mfs.length; i++) {
             MappedFile mappedFile = (MappedFile) mfs[i];
             if (mappedFile.getLastModifiedTimestamp() >= timestamp) {
@@ -90,7 +116,7 @@ public class MappedFileQueue {
         return (MappedFile) mfs[mfs.length - 1];
     }
 
-    private Object[] copyMappedFiles(final int reservedMappedFiles) {
+    private Object[] copyMappedFiles(int reservedMappedFiles) {
         Object[] mfs;
 
         if (this.mappedFiles.size() <= reservedMappedFiles) {
@@ -102,7 +128,7 @@ public class MappedFileQueue {
     }
 
     public void truncateDirtyFiles(long offset) {
-        List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
+        List<MappedFile> willRemoveFiles = new ArrayList<>();
 
         for (MappedFile file : this.mappedFiles) {
             long fileTailOffset = file.getFileFromOffset() + this.mappedFileSize;
@@ -144,11 +170,14 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 加载 CommitLog 文件
+     */
     public boolean load() {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
         if (files != null) {
-            // ascending order
+            /* 加载 ${ROCKET_HOME}/store/commitlog 下所有文件，升序排列 */
             Arrays.sort(files);
             for (File file : files) {
 
@@ -176,7 +205,7 @@ public class MappedFileQueue {
         return true;
     }
 
-    public long howMuchFallBehind() {
+    /*public long howMuchFallBehind() {
         if (this.mappedFiles.isEmpty())
             return 0;
 
@@ -189,9 +218,9 @@ public class MappedFileQueue {
         }
 
         return 0;
-    }
+    }*/
 
-    public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
+    public MappedFile getLastMappedFile(long startOffset, boolean needCreate) {
         long createOffset = -1;
         MappedFile mappedFileLast = getLastMappedFile();
 
@@ -210,8 +239,9 @@ public class MappedFileQueue {
             MappedFile mappedFile = null;
 
             if (this.allocateMappedFileService != null) {
-                mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
-                    nextNextFilePath, this.mappedFileSize);
+                mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(
+                    nextFilePath, nextNextFilePath, this.mappedFileSize
+                );
             } else {
                 try {
                     mappedFile = new MappedFile(nextFilePath, this.mappedFileSize);
@@ -233,7 +263,7 @@ public class MappedFileQueue {
         return mappedFileLast;
     }
 
-    public MappedFile getLastMappedFile(final long startOffset) {
+    public MappedFile getLastMappedFile(long startOffset) {
         return getLastMappedFile(startOffset, true);
     }
 
@@ -286,7 +316,6 @@ public class MappedFileQueue {
     }
 
     public long getMinOffset() {
-
         if (!this.mappedFiles.isEmpty()) {
             try {
                 return this.mappedFiles.get(0).getFileFromOffset();
@@ -296,6 +325,7 @@ public class MappedFileQueue {
                 log.error("getMinOffset has exception.", e);
             }
         }
+
         return -1;
     }
 
@@ -422,7 +452,7 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
-    public boolean flush(final int flushLeastPages) {
+    public boolean flush(int flushLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
@@ -479,14 +509,16 @@ public class MappedFileQueue {
                     } catch (Exception ignored) {
                     }
 
-                    if (targetFile != null && offset >= targetFile.getFileFromOffset()
-                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                    if (targetFile != null
+                            && offset >= targetFile.getFileFromOffset()
+                            && offset < (targetFile.getFileFromOffset() + this.mappedFileSize)
+                    ) {
                         return targetFile;
                     }
 
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
                         if (offset >= tmpMappedFile.getFileFromOffset()
-                            && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                            && offset < (tmpMappedFile.getFileFromOffset() + this.mappedFileSize)) {
                             return tmpMappedFile;
                         }
                     }
@@ -503,6 +535,10 @@ public class MappedFileQueue {
         return null;
     }
 
+    /**
+     * 获取当前 MappedFileQueue 下管理的第一个 MappedFile
+     * ⚠️： 第一个并非一定是 0000 0000 0000 0000 0000 文件
+     */
     public MappedFile getFirstMappedFile() {
         MappedFile mappedFileFirst = null;
 

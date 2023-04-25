@@ -16,27 +16,30 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 /**
+ * 根据 Broker 部署机房名，每个消费者负责不同 Broker 上的队列
  * Computer room Hashing queue algorithm, such as Alipay logic room
  */
 public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
+
     private Set<String> consumeridcs;
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         int currentIndex = cidAll.indexOf(currentCID);
         if (currentIndex < 0) {
             return result;
         }
-        List<MessageQueue> premqAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> premqAll = new ArrayList<>();
         for (MessageQueue mq : mqAll) {
             String[] temp = mq.getBrokerName().split("@");
             if (temp.length == 2 && consumeridcs.contains(temp[0])) {
@@ -69,4 +72,5 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
     public void setConsumeridcs(Set<String> consumeridcs) {
         this.consumeridcs = consumeridcs;
     }
+
 }

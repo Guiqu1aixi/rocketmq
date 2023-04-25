@@ -60,6 +60,11 @@ public class RemotingUtil {
 
         if (isLinuxPlatform()) {
             try {
+                /**
+                 * 这里之所以舍近求远使用反射创造对象
+                 * 是因为 EPollSelectorProvider 在 Open JDK 才存在
+                 * 如果 EPollSelectorProvider.class 获取失败则使用 Selector.open() 获取 Selector
+                 */
                 final Class<?> providerClazz = Class.forName("sun.nio.ch.EPollSelectorProvider");
                 if (providerClazz != null) {
                     try {

@@ -19,13 +19,18 @@ package org.apache.rocketmq.client.latency;
 
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
 
 public class MQFaultStrategy {
+
     private final static InternalLogger log = ClientLogger.getLog();
+
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
+    /**
+     * 默认关闭 Broker 故障延迟机制，就是有问题的 Broker 不一定会退避退让
+     */
     private boolean sendLatencyFaultEnable = false;
 
     private long[] latencyMax = {50L, 100L, 550L, 1000L, 2000L, 3000L, 15000L};
@@ -35,7 +40,7 @@ public class MQFaultStrategy {
         return notAvailableDuration;
     }
 
-    public void setNotAvailableDuration(final long[] notAvailableDuration) {
+    public void setNotAvailableDuration(long[] notAvailableDuration) {
         this.notAvailableDuration = notAvailableDuration;
     }
 
@@ -43,7 +48,7 @@ public class MQFaultStrategy {
         return latencyMax;
     }
 
-    public void setLatencyMax(final long[] latencyMax) {
+    public void setLatencyMax(long[] latencyMax) {
         this.latencyMax = latencyMax;
     }
 
@@ -51,11 +56,11 @@ public class MQFaultStrategy {
         return sendLatencyFaultEnable;
     }
 
-    public void setSendLatencyFaultEnable(final boolean sendLatencyFaultEnable) {
+    public void setSendLatencyFaultEnable(boolean sendLatencyFaultEnable) {
         this.sendLatencyFaultEnable = sendLatencyFaultEnable;
     }
 
-    public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
+    public MessageQueue selectOneMessageQueue(TopicPublishInfo tpInfo, String lastBrokerName) {
         if (this.sendLatencyFaultEnable) {
             try {
                 int index = tpInfo.getSendWhichQueue().getAndIncrement();
@@ -68,10 +73,10 @@ public class MQFaultStrategy {
                         return mq;
                 }
 
-                final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
+                String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
                 int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
-                    final MessageQueue mq = tpInfo.selectOneMessageQueue();
+                    MessageQueue mq = tpInfo.selectOneMessageQueue();
                     if (notBestBroker != null) {
                         mq.setBrokerName(notBestBroker);
                         mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
@@ -90,14 +95,14 @@ public class MQFaultStrategy {
         return tpInfo.selectOneMessageQueue(lastBrokerName);
     }
 
-    public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation) {
+    public void updateFaultItem(String brokerName, long currentLatency, boolean isolation) {
         if (this.sendLatencyFaultEnable) {
             long duration = computeNotAvailableDuration(isolation ? 30000 : currentLatency);
             this.latencyFaultTolerance.updateFaultItem(brokerName, currentLatency, duration);
         }
     }
 
-    private long computeNotAvailableDuration(final long currentLatency) {
+    private long computeNotAvailableDuration(long currentLatency) {
         for (int i = latencyMax.length - 1; i >= 0; i--) {
             if (currentLatency >= latencyMax[i])
                 return this.notAvailableDuration[i];
@@ -105,4 +110,5 @@ public class MQFaultStrategy {
 
         return 0;
     }
+
 }

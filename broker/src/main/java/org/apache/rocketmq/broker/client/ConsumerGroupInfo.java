@@ -17,6 +17,14 @@
 package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -24,21 +32,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public class ConsumerGroupInfo {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+
     private final String groupName;
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
-        new ConcurrentHashMap<String, SubscriptionData>();
+        new ConcurrentHashMap<>();
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-        new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
+        new ConcurrentHashMap<>(16);
     private volatile ConsumeType consumeType;
     private volatile MessageModel messageModel;
     private volatile ConsumeFromWhere consumeFromWhere;
@@ -52,7 +55,7 @@ public class ConsumerGroupInfo {
         this.consumeFromWhere = consumeFromWhere;
     }
 
-    public ClientChannelInfo findChannel(final String clientId) {
+    public ClientChannelInfo findChannel(String clientId) {
         Iterator<Entry<Channel, ClientChannelInfo>> it = this.channelInfoTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Channel, ClientChannelInfo> next = it.next();
@@ -113,7 +116,7 @@ public class ConsumerGroupInfo {
         return false;
     }
 
-    public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
+    public boolean updateChannel(ClientChannelInfo infoNew, ConsumeType consumeType,
         MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
         this.consumeType = consumeType;
@@ -124,8 +127,9 @@ public class ConsumerGroupInfo {
         if (null == infoOld) {
             ClientChannelInfo prev = this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             if (null == prev) {
-                log.info("new consumer connected, group: {} {} {} channel: {}", this.groupName, consumeType,
-                    messageModel, infoNew.toString());
+                log.info("new consumer connected, group: {} {} {} channel: {}",
+                    this.groupName, consumeType, messageModel, infoNew.toString()
+                );
                 updated = true;
             }
 
@@ -133,20 +137,19 @@ public class ConsumerGroupInfo {
         } else {
             if (!infoOld.getClientId().equals(infoNew.getClientId())) {
                 log.error("[BUG] consumer channel exist in broker, but clientId not equal. GROUP: {} OLD: {} NEW: {} ",
-                    this.groupName,
-                    infoOld.toString(),
-                    infoNew.toString());
+                    this.groupName, infoOld.toString(), infoNew.toString()
+                );
+
                 this.channelInfoTable.put(infoNew.getChannel(), infoNew);
             }
         }
 
         this.lastUpdateTimestamp = System.currentTimeMillis();
         infoOld.setLastUpdateTimestamp(this.lastUpdateTimestamp);
-
         return updated;
     }
 
-    public boolean updateSubscription(final Set<SubscriptionData> subList) {
+    public boolean updateSubscription(Set<SubscriptionData> subList) {
         boolean updated = false;
 
         for (SubscriptionData sub : subList) {
@@ -156,15 +159,13 @@ public class ConsumerGroupInfo {
                 if (null == prev) {
                     updated = true;
                     log.info("subscription changed, add new topic, group: {} {}",
-                        this.groupName,
-                        sub.toString());
+                        this.groupName, sub.toString()
+                    );
                 }
             } else if (sub.getSubVersion() > old.getSubVersion()) {
                 if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
                     log.info("subscription changed, group: {} OLD: {} NEW: {}",
-                        this.groupName,
-                        old.toString(),
-                        sub.toString()
+                        this.groupName, old.toString(), sub.toString()
                     );
                 }
 

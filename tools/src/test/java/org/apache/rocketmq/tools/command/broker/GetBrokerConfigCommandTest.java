@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.broker;
 
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
-import java.util.Properties;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -39,6 +36,10 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.util.Properties;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;

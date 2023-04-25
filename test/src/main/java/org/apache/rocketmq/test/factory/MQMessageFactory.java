@@ -17,15 +17,11 @@
 
 package org.apache.rocketmq.test.factory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.util.RandomUtil;
+
+import java.util.*;
 
 public class MQMessageFactory {
     private static Integer index = 0;

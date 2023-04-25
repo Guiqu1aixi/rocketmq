@@ -25,13 +25,13 @@ import org.apache.rocketmq.broker.pagecache.OneMessageTransfer;
 import org.apache.rocketmq.broker.pagecache.QueryMessageTransfer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.header.ViewMessageRequestHeader;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -70,11 +70,11 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
 
     public RemotingCommand queryMessage(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-        final RemotingCommand response =
+        RemotingCommand response =
             RemotingCommand.createResponseCommand(QueryMessageResponseHeader.class);
-        final QueryMessageResponseHeader responseHeader =
+        QueryMessageResponseHeader responseHeader =
             (QueryMessageResponseHeader) response.readCustomHeader();
-        final QueryMessageRequestHeader requestHeader =
+        QueryMessageRequestHeader requestHeader =
             (QueryMessageRequestHeader) request
                 .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
@@ -85,10 +85,11 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
             requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
         }
 
-        final QueryMessageResult queryMessageResult =
-            this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
-                requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
-                requestHeader.getEndTimestamp());
+        QueryMessageResult queryMessageResult = this.brokerController.getMessageStore().queryMessage(
+            requestHeader.getTopic(), requestHeader.getKey(),
+            requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
+            requestHeader.getEndTimestamp()
+        );
         assert queryMessageResult != null;
 
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
@@ -99,16 +100,13 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
             response.setRemark(null);
 
             try {
-                FileRegion fileRegion =
-                    new QueryMessageTransfer(response.encodeHeader(queryMessageResult
-                        .getBufferTotalSize()), queryMessageResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        queryMessageResult.release();
-                        if (!future.isSuccess()) {
-                            log.error("transfer query message by page cache failed, ", future.cause());
-                        }
+                FileRegion fileRegion = new QueryMessageTransfer(
+                    response.encodeHeader(queryMessageResult.getBufferTotalSize()), queryMessageResult
+                );
+                ctx.channel().writeAndFlush(fileRegion).addListener((ChannelFutureListener) future -> {
+                    queryMessageResult.release();
+                    if (!future.isSuccess()) {
+                        log.error("transfer query message by page cache failed, ", future.cause());
                     }
                 });
             } catch (Throwable e) {
@@ -126,29 +124,26 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
 
     public RemotingCommand viewMessageById(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final ViewMessageRequestHeader requestHeader =
-            (ViewMessageRequestHeader) request.decodeCommandCustomHeader(ViewMessageRequestHeader.class);
-
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        ViewMessageRequestHeader requestHeader = (ViewMessageRequestHeader) request
+            .decodeCommandCustomHeader(ViewMessageRequestHeader.class);
         response.setOpaque(request.getOpaque());
 
-        final SelectMappedBufferResult selectMappedBufferResult =
+        SelectMappedBufferResult selectMappedBufferResult =
             this.brokerController.getMessageStore().selectOneMessageByOffset(requestHeader.getOffset());
         if (selectMappedBufferResult != null) {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
 
             try {
-                FileRegion fileRegion =
-                    new OneMessageTransfer(response.encodeHeader(selectMappedBufferResult.getSize()),
-                        selectMappedBufferResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        selectMappedBufferResult.release();
-                        if (!future.isSuccess()) {
-                            log.error("Transfer one message from page cache failed, ", future.cause());
-                        }
+                FileRegion fileRegion = new OneMessageTransfer(
+                    response.encodeHeader(selectMappedBufferResult.getSize()),
+                    selectMappedBufferResult
+                );
+                ctx.channel().writeAndFlush(fileRegion).addListener((ChannelFutureListener) future -> {
+                    selectMappedBufferResult.release();
+                    if (!future.isSuccess()) {
+                        log.error("Transfer one message from page cache failed, ", future.cause());
                     }
                 });
             } catch (Throwable e) {
@@ -164,4 +159,5 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
 
         return response;
     }
+
 }

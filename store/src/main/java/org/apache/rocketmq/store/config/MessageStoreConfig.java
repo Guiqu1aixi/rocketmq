@@ -16,39 +16,57 @@
  */
 package org.apache.rocketmq.store.config;
 
-import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 
+import java.io.File;
+
 public class MessageStoreConfig {
-    //The root directory in which the log data is kept
+
+    /* The root directory in which the log data is kept */
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
-    //The directory in which the commitlog is kept
+    /* The directory in which the commitlog is kept */
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+    private String storePathCommitLog = System.getProperty("user.home") +
+        File.separator + "store" + File.separator + "commitlog";
 
-    // CommitLog file size,default is 1G
+    /**
+     * CommitLog file size,default is 1G
+     * CommitLog 单个文件大小，默认 1G
+     */
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
-    // ConsumeQueue file size,default is 30W
-    private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
-    // enable consume queue ext
+
+    /**
+     * ConsumeQueue file size,default is 30W
+     * ConsumeQueue 文件默认记录30_0000个条目信息
+     */
+    private int mappedFileSizeConsumeQueue = 30_0000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+
+    /* enable consume queue ext */
     private boolean enableConsumeQueueExt = false;
-    // ConsumeQueue extend file size, 48M
+
+    /* ConsumeQueue extend file size, 48M */
     private int mappedFileSizeConsumeQueueExt = 48 * 1024 * 1024;
-    // Bit count of filter bit map.
-    // this will be set by pipe of calculate filter bit map.
+
+    /**
+     * Bit count of filter bit map.
+     * this will be set by pipe of calculate filter bit map.
+     */
     private int bitMapLengthConsumeQueueExt = 64;
 
-    // CommitLog flush interval
-    // flush data to disk
+    /**
+     * CommitLog flush interval
+     * flush data to disk
+     */
     @ImportantField
     private int flushIntervalCommitLog = 500;
 
-    // Only used if TransientStorePool enabled
-    // flush data to FileChannel
+    /**
+     * Only used if TransientStorePool enabled
+     * flush data to FileChannel
+     */
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
@@ -58,41 +76,53 @@ public class MessageStoreConfig {
      */
     private boolean useReentrantLockWhenPutMessage = false;
 
-    // Whether schedule flush,default is real-time
+    /* Whether schedule flush,default is real-time */
     @ImportantField
     private boolean flushCommitLogTimed = false;
-    // ConsumeQueue flush interval
+    /* ConsumeQueue flush interval */
     private int flushIntervalConsumeQueue = 1000;
-    // Resource reclaim interval
-    private int cleanResourceInterval = 10000;
-    // CommitLog removal interval
+
+    /**
+     * Resource reclaim interval
+     * 检查是否需要清除过期文件时间间隔,默认10_000ms
+     */
+    private int cleanResourceInterval = 10_000;
+
+    /* CommitLog removal interval */
     private int deleteCommitLogFilesInterval = 100;
-    // ConsumeQueue removal interval
+    /* ConsumeQueue removal interval */
     private int deleteConsumeQueueFilesInterval = 100;
     private int destroyMapedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
-    // When to delete,default is at 4 am
+
+    /**
+     * When to delete,default is at 4 am
+     * Rocket MQ 通过 deleteWhen 设置一天的固定时间执行一次过期文件删除操作，默认凌晨四点
+     */
     @ImportantField
     private String deleteWhen = "04";
+
     private int diskMaxUsedSpaceRatio = 75;
-    // The number of hours to keep a log file before deleting it (in hours)
+    /* The number of hours to keep a log file before deleting it (in hours) */
     @ImportantField
     private int fileReservedTime = 72;
-    // Flow control for ConsumeQueue
+    /* Flow control for ConsumeQueue */
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of message,default is 4M
+    /* The maximum size of message,default is 4M */
     private int maxMessageSize = 1024 * 1024 * 4;
-    // Whether check the CRC32 of the records consumed.
-    // This ensures no on-the-wire or on-disk corruption to the messages occurred.
-    // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
+    /**
+     * Whether check the CRC32 of the records consumed.
+     * This ensures no on-the-wire or on-disk corruption to the messages occurred.
+     * This check adds some overhead,so it may be disabled in cases seeking extreme performance.
+     */
     private boolean checkCRCOnRecover = true;
-    // How many pages are to be flushed when flush CommitLog
+    /* How many pages are to be flushed when flush CommitLog */
     private int flushCommitLogLeastPages = 4;
-    // How many pages are to be committed when commit data to file
+    /* How many pages are to be committed when commit data to file */
     private int commitCommitLogLeastPages = 4;
-    // Flush page size when the disk in warming state
+    /* Flush page size when the disk in warming state */
     private int flushLeastPagesWhenWarmMapedFile = 1024 / 4 * 16;
-    // How many pages are to be flushed when flush ConsumeQueue
+    /* How many pages are to be flushed when flush ConsumeQueue */
     private int flushConsumeQueueLeastPages = 2;
     private int flushCommitLogThoroughInterval = 1000 * 10;
     private int commitCommitLogThoroughInterval = 200;
@@ -105,12 +135,18 @@ public class MessageStoreConfig {
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
+
+    /**
+     * RocketMQ 主从同步架构中，如果需要访问的消息偏移量与当前 CommitLog 最大偏移量之差超过了内存的40%，
+     * 消息消费将由从节点接管
+     */
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
+
     @ImportantField
     private boolean messageIndexEnable = true;
-    private int maxHashSlotNum = 5000000;
-    private int maxIndexNum = 5000000 * 4;
+    private int maxHashSlotNum = 500_0000;
+    private int maxIndexNum = 500_0000 * 4;
     private int maxMsgsNumBatch = 64;
     @ImportantField
     private boolean messageIndexSafe = false;
@@ -123,10 +159,31 @@ public class MessageStoreConfig {
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+
+    /**
+     * 刷盘机制
+     */
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
+
     private int syncFlushTimeout = 1000 * 5;
+
+    /**
+     * 消息延迟时间
+     * ⚠️:此处是18个时间阶梯，但是无论是看资料还是官方文档都明文说明了重试16次
+     * 原因就是重试的时候一上来就是从10s开始进行重试
+     *
+     * 无一例外如果消息延迟等级为0，则
+     *    3 + msg.getReconsumeTimes()
+     *    3 + msgExt.getReconsumeTimes()
+     *
+     * @see org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl#sendMessageBack
+     * @see org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl#sendMessageBack
+     * @see org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService#sendMessageBack
+     * @see org.apache.rocketmq.broker.processor.SendMessageProcessor#asyncConsumerSendMsgBack
+     */
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
@@ -722,4 +779,5 @@ public class MessageStoreConfig {
     public void setEnableBatchPush(boolean enableBatchPush) {
         isEnableBatchPush = enableBatchPush;
     }
+
 }

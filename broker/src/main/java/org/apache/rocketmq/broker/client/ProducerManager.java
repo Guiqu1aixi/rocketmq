@@ -17,12 +17,6 @@
 package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -30,11 +24,20 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class ProducerManager {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private static final int GET_AVAILABLE_CHANNEL_RETRY_COUNT = 3;
-    private final ConcurrentHashMap<String /* group name */, ConcurrentHashMap<Channel, ClientChannelInfo>> groupChannelTable =
+    /* ConcurrentHashMap<group name, ConcurrentHashMap<Channel, ClientChannelInfo>> */
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
@@ -71,14 +74,14 @@ public class ProducerManager {
         }
     }
 
-    public synchronized void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public synchronized void doChannelCloseEvent(String remoteAddr, Channel channel) {
         if (channel != null) {
-            for (final Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
+            for (Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
                     .entrySet()) {
-                final String group = entry.getKey();
-                final ConcurrentHashMap<Channel, ClientChannelInfo> clientChannelInfoTable =
+                String group = entry.getKey();
+                ConcurrentHashMap<Channel, ClientChannelInfo> clientChannelInfoTable =
                         entry.getValue();
-                final ClientChannelInfo clientChannelInfo =
+                ClientChannelInfo clientChannelInfo =
                         clientChannelInfoTable.remove(channel);
                 if (clientChannelInfo != null) {
                     clientChannelTable.remove(clientChannelInfo.getClientId());
@@ -91,7 +94,7 @@ public class ProducerManager {
         }
     }
 
-    public synchronized void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
+    public synchronized void registerProducer(String group, ClientChannelInfo clientChannelInfo) {
         ClientChannelInfo clientChannelInfoFound = null;
 
         ConcurrentHashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
@@ -114,7 +117,7 @@ public class ProducerManager {
         }
     }
 
-    public synchronized void unregisterProducer(final String group, final ClientChannelInfo clientChannelInfo) {
+    public synchronized void unregisterProducer(String group, ClientChannelInfo clientChannelInfo) {
         ConcurrentHashMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
         if (null != channelTable && !channelTable.isEmpty()) {
             ClientChannelInfo old = channelTable.remove(clientChannelInfo.getChannel());
@@ -174,4 +177,5 @@ public class ProducerManager {
     public Channel findChannel(String clientId) {
         return clientChannelTable.get(clientId);
     }
+
 }

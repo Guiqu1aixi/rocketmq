@@ -54,7 +54,7 @@ public class SelectMessageQueueRetryTest {
 
     private Set<String> retryBroker(TopicPublishInfo topicPublishInfo) {
         MessageQueue mqTmp = null;
-        Set<String> retryBrokerNameSet = new HashSet();
+        Set<String> retryBrokerNameSet = new HashSet<>();
         for (int times = 0; times < 3; times++) {
             String lastBrokerName = null == mqTmp ? null : mqTmp.getBrokerName();
             mqTmp = topicPublishInfo.selectOneMessageQueue(lastBrokerName);

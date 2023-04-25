@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.trace;
 
 import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.exception.MQClientException;
+
 import java.io.IOException;
 
 /**

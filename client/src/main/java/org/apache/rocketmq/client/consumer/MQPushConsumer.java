@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
  * Push consumer
  */
 public interface MQPushConsumer extends MQConsumer {
+
     /**
      * Start the consumer
      */
@@ -41,18 +42,25 @@ public interface MQPushConsumer extends MQConsumer {
     @Deprecated
     void registerMessageListener(MessageListener messageListener);
 
-    void registerMessageListener(final MessageListenerConcurrently messageListener);
-
-    void registerMessageListener(final MessageListenerOrderly messageListener);
+    /**
+     * 注册并发消息时间监听器
+     */
+    void registerMessageListener(MessageListenerConcurrently messageListener);
 
     /**
+     * 注册顺序消息时间监听器
+     */
+    void registerMessageListener(MessageListenerOrderly messageListener);
+
+    /**
+     * 基于 Topic 订阅消息
      * Subscribe some topic
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
      * null or * expression,meaning subscribe
      * all
      */
-    void subscribe(final String topic, final String subExpression) throws MQClientException;
+    void subscribe(String topic, String subExpression) throws MQClientException;
 
     /**
      * This method will be removed in the version 5.0.0,because filterServer was removed,and method <code>subscribe(final String topic, final MessageSelector messageSelector)</code>
@@ -64,8 +72,7 @@ public interface MQPushConsumer extends MQConsumer {
      * @param filterClassSource class source code,used UTF-8 file encoding,must be responsible for your code safety
      */
     @Deprecated
-    void subscribe(final String topic, final String fullClassName,
-        final String filterClassSource) throws MQClientException;
+    void subscribe(String topic, String fullClassName, String filterClassSource) throws MQClientException;
 
     /**
      * Subscribe some topic with selector.
@@ -84,14 +91,15 @@ public interface MQPushConsumer extends MQConsumer {
      *
      * @param selector message selector({@link MessageSelector}), can be null.
      */
-    void subscribe(final String topic, final MessageSelector selector) throws MQClientException;
+    void subscribe(String topic, MessageSelector selector) throws MQClientException;
 
     /**
+     * 取消订阅
      * Unsubscribe consumption some topic
      *
      * @param topic message topic
      */
-    void unsubscribe(final String topic);
+    void unsubscribe(String topic);
 
     /**
      * Update the consumer thread pool size Dynamically
@@ -107,4 +115,5 @@ public interface MQPushConsumer extends MQConsumer {
      * Resume the consumption
      */
     void resume();
+
 }

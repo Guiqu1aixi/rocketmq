@@ -20,6 +20,9 @@ import java.nio.ByteBuffer;
 
 public class SelectMappedBufferResult {
 
+    /**
+     * 这个是绝对偏移量
+     */
     private final long startOffset;
 
     private final ByteBuffer byteBuffer;
@@ -28,7 +31,8 @@ public class SelectMappedBufferResult {
 
     private MappedFile mappedFile;
 
-    public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
+    public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer,
+                                    int size, MappedFile mappedFile) {
         this.startOffset = startOffset;
         this.byteBuffer = byteBuffer;
         this.size = size;
@@ -48,13 +52,6 @@ public class SelectMappedBufferResult {
         this.byteBuffer.limit(this.size);
     }
 
-//    @Override
-//    protected void finalize() {
-//        if (this.mappedFile != null) {
-//            this.release();
-//        }
-//    }
-
     public synchronized void release() {
         if (this.mappedFile != null) {
             this.mappedFile.release();
@@ -65,4 +62,5 @@ public class SelectMappedBufferResult {
     public long getStartOffset() {
         return startOffset;
     }
+
 }

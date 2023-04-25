@@ -18,15 +18,6 @@
 package org.apache.rocketmq.broker.filtersrv;
 
 import io.netty.channel.Channel;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -35,12 +26,18 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
+
 public class FilterServerManager {
 
     public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ConcurrentMap<Channel, FilterServerInfo> filterServerTable =
-        new ConcurrentHashMap<Channel, FilterServerInfo>(16);
+        new ConcurrentHashMap<>(16);
     private final BrokerController brokerController;
 
     private ScheduledExecutorService scheduledExecutorService = Executors
@@ -52,16 +49,18 @@ public class FilterServerManager {
 
     public void start() {
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     FilterServerManager.this.createFilterServer();
                 } catch (Exception e) {
                     log.error("", e);
                 }
-            }
-        }, 1000 * 5, 1000 * 30, TimeUnit.MILLISECONDS);
+            },
+            1000 * 5,
+            1000 * 30,
+            TimeUnit.MILLISECONDS
+        );
     }
 
     public void createFilterServer() {

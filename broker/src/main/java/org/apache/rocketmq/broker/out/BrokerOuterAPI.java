@@ -16,13 +16,6 @@
  */
 package org.apache.rocketmq.broker.out;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.DataVersion;
@@ -30,32 +23,29 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.ConsumerOffsetSerializeWrapper;
-import org.apache.rocketmq.common.protocol.body.KVTable;
-import org.apache.rocketmq.common.protocol.body.RegisterBrokerBody;
-import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.QueryDataVersionResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerRequestHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.RegisterBrokerResponseHeader;
-import org.apache.rocketmq.common.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
+import org.apache.rocketmq.common.protocol.body.*;
+import org.apache.rocketmq.common.protocol.header.namesrv.*;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.exception.*;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class BrokerOuterAPI {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -101,32 +91,39 @@ public class BrokerOuterAPI {
     }
 
     public void updateNameServerAddressList(final String addrs) {
-        List<String> lst = new ArrayList<String>();
+        List<String> lst = new ArrayList<>();
         String[] addrArray = addrs.split(";");
-        for (String addr : addrArray) {
-            lst.add(addr);
-        }
-
+        Collections.addAll(lst, addrArray);
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
+    /**
+     * @param clusterName        集群名称
+     * @param brokerAddr         Broker地址
+     * @param brokerName         Broker名称
+     * @param brokerId           BrokerId > 0 表示 master, 反之slave
+     * @param haServerAddr       Master地址，初次请求为空，Slave 向 NameServer注册之后返回
+     * @param topicConfigWrapper 主题配置
+     * @param filterServerList   消息过滤服务器列表
+     *
+     * TopicConfigWrapper 内部封装的是 TopicConfigManager 中的 topicConfigTable
+     *                    内部存储的是 Broker 启动时默认的一些 Topic
+     *                    MixAll.SELF_TEST_TOPIC MixAll.DEFAULT_TOPIC(AutoCreateTopic-Enable=true ),
+     *                    MixAll.BENCHMARK_TOPIC, MixAll.OFFSET_MOVED_EVENT
+     *                    BrokerConfig#brokerClusterName, BrokerConfig#brokerName
+     *                    Broker Topic 默认存储在 ${Rocket_Home}/store/config/topic.json 中
+     */
     public List<RegisterBrokerResult> registerBrokerAll(
-        final String clusterName,
-        final String brokerAddr,
-        final String brokerName,
-        final long brokerId,
-        final String haServerAddr,
-        final TopicConfigSerializeWrapper topicConfigWrapper,
-        final List<String> filterServerList,
-        final boolean oneway,
-        final int timeoutMills,
-        final boolean compressed) {
-
-        final List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
+        String clusterName, String brokerAddr,
+        String brokerName, long brokerId, String haServerAddr,
+        TopicConfigSerializeWrapper topicConfigWrapper,
+        List<String> filterServerList,
+        boolean oneway, int timeoutMills, boolean compressed
+    ) {
+        List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
-
-            final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
+            RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
             requestHeader.setBrokerAddr(brokerAddr);
             requestHeader.setBrokerId(brokerId);
             requestHeader.setBrokerName(brokerName);
@@ -137,26 +134,22 @@ public class BrokerOuterAPI {
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
             requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
             requestBody.setFilterServerList(filterServerList);
-            final byte[] body = requestBody.encode(compressed);
-            final int bodyCrc32 = UtilAll.crc32(body);
+            byte[] body = requestBody.encode(compressed);
+            int bodyCrc32 = UtilAll.crc32(body);
             requestHeader.setBodyCrc32(bodyCrc32);
-            final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
+            CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            RegisterBrokerResult result = registerBroker(namesrvAddr,oneway, timeoutMills,requestHeader,body);
-                            if (result != null) {
-                                registerBrokerResultList.add(result);
-                            }
-
-                            log.info("register broker[{}]to name server {} OK", brokerId, namesrvAddr);
-                        } catch (Exception e) {
-                            log.warn("registerBroker Exception, {}", namesrvAddr, e);
-                        } finally {
-                            countDownLatch.countDown();
+                brokerOuterExecutor.execute(() -> {
+                    try {
+                        RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
+                        if (result != null) {
+                            registerBrokerResultList.add(result);
                         }
+                        log.info("register broker[{}]to name server {} OK", brokerId, namesrvAddr);
+                    } catch (Exception e) {
+                        log.warn("registerBroker Exception, {}", namesrvAddr, e);
+                    } finally {
+                        countDownLatch.countDown();
                     }
                 });
             }
@@ -171,11 +164,8 @@ public class BrokerOuterAPI {
     }
 
     private RegisterBrokerResult registerBroker(
-        final String namesrvAddr,
-        final boolean oneway,
-        final int timeoutMills,
-        final RegisterBrokerRequestHeader requestHeader,
-        final byte[] body
+        String namesrvAddr, boolean oneway, int timeoutMills,
+        RegisterBrokerRequestHeader requestHeader, byte[] body
     ) throws RemotingCommandException, MQBrokerException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_BROKER, requestHeader);

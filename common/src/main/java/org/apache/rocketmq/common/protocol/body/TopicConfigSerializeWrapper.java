@@ -24,8 +24,9 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicConfigSerializeWrapper extends RemotingSerializable {
-    private ConcurrentMap<String, TopicConfig> topicConfigTable =
-        new ConcurrentHashMap<String, TopicConfig>();
+
+    private ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+
     private DataVersion dataVersion = new DataVersion();
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {
@@ -43,4 +44,5 @@ public class TopicConfigSerializeWrapper extends RemotingSerializable {
     public void setDataVersion(DataVersion dataVersion) {
         this.dataVersion = dataVersion;
     }
+
 }

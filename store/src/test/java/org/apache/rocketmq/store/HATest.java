@@ -64,6 +64,7 @@ public class HATest {
     private String storePathRootParentDir = System.getProperty("user.home") + File.separator +
             UUID.randomUUID().toString().replace("-", "");
     private String storePathRootDir = storePathRootParentDir + File.separator + "store";
+
     @Before
     public void init() throws Exception {
         StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
@@ -196,7 +197,6 @@ public class HATest {
 
     private boolean isCommitLogAvailable(DefaultMessageStore store)  {
         try {
-
             Field serviceField = store.getClass().getDeclaredField("reputMessageService");
             serviceField.setAccessible(true);
             DefaultMessageStore.ReputMessageService reputService =

@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SendResult {
+
     private SendStatus sendStatus;
     private String msgId;
     private MessageQueue messageQueue;
@@ -41,9 +42,10 @@ public class SendResult {
         this.queueOffset = queueOffset;
     }
 
-    public SendResult(final SendStatus sendStatus, final String msgId, final MessageQueue messageQueue,
-        final long queueOffset, final String transactionId,
-        final String offsetMsgId, final String regionId) {
+    public SendResult(SendStatus sendStatus, String msgId, MessageQueue messageQueue,
+        long queueOffset, String transactionId,
+        String offsetMsgId, String regionId
+    ) {
         this.sendStatus = sendStatus;
         this.msgId = msgId;
         this.messageQueue = messageQueue;
@@ -127,7 +129,17 @@ public class SendResult {
 
     @Override
     public String toString() {
-        return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
-            + ", queueOffset=" + queueOffset + "]";
+        return "SendResult [sendStatus="
+                + sendStatus
+                + ", msgId="
+                + msgId
+                + ", offsetMsgId="
+                + offsetMsgId
+                + ", messageQueue="
+                + messageQueue
+                + ", queueOffset="
+                + queueOffset
+                + "]";
     }
+
 }

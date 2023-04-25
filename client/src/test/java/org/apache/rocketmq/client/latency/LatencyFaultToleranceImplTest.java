@@ -16,9 +16,10 @@
  */
 package org.apache.rocketmq.client.latency;
 
-import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

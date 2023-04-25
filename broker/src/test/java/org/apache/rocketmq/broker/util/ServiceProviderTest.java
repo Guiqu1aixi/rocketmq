@@ -22,9 +22,9 @@ import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckL
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ServiceProviderTest {
 

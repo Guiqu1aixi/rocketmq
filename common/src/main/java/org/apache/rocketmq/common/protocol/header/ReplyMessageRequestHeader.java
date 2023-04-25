@@ -23,6 +23,7 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ReplyMessageRequestHeader implements CommandCustomHeader {
+
     @CFNotNull
     private String producerGroup;
     @CFNotNull

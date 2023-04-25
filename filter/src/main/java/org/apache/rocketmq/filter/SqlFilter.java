@@ -40,4 +40,5 @@ public class SqlFilter implements FilterSpi {
     public String ofType() {
         return ExpressionType.SQL92;
     }
+
 }

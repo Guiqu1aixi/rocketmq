@@ -22,6 +22,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ViewBrokerStatsDataRequestHeader implements CommandCustomHeader {
+
     @CFNotNull
     private String statsName;
     @CFNotNull

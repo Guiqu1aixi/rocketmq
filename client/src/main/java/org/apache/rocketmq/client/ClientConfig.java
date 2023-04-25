@@ -16,10 +16,6 @@
  */
 package org.apache.rocketmq.client;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -29,10 +25,16 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 /**
  * Client Common configuration
  */
 public class ClientConfig {
+
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = RemotingUtil.getLocalAddress();
@@ -62,6 +64,12 @@ public class ClientConfig {
 
     private LanguageCode language = LanguageCode.JAVA;
 
+    /**
+     * 拼接 clientId
+     * 如果 instanceName 没有设置${rocketmq.client.name}环境变量默认是 "DEFAULT"
+     * 如果此时 unitName 为空或者相等，那么同一个物理机上启动多个实例会出现 clientId 混乱的情况
+     * 所以 instanceName 如果等于 "DEFAULT"，那么会修改为进程ID
+     */
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -92,6 +100,9 @@ public class ClientConfig {
         this.instanceName = instanceName;
     }
 
+    /**
+     * {@link #buildMQClientId()}
+     */
     public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
             this.instanceName = String.valueOf(UtilAll.getPid());
@@ -103,7 +114,7 @@ public class ClientConfig {
     }
 
     public Set<String> withNamespace(Set<String> resourceSet) {
-        Set<String> resourceWithNamespace = new HashSet<String>();
+        Set<String> resourceWithNamespace = new HashSet<>();
         for (String resource : resourceSet) {
             resourceWithNamespace.add(withNamespace(resource));
         }
@@ -115,7 +126,7 @@ public class ClientConfig {
     }
 
     public Set<String> withoutNamespace(Set<String> resourceSet) {
-        Set<String> resourceWithoutNamespace = new HashSet<String>();
+        Set<String> resourceWithoutNamespace = new HashSet<>();
         for (String resource : resourceSet) {
             resourceWithoutNamespace.add(withoutNamespace(resource));
         }
@@ -141,7 +152,7 @@ public class ClientConfig {
         return queues;
     }
 
-    public void resetClientConfig(final ClientConfig cc) {
+    public void resetClientConfig(ClientConfig cc) {
         this.namesrvAddr = cc.namesrvAddr;
         this.clientIP = cc.clientIP;
         this.instanceName = cc.instanceName;
@@ -253,7 +264,7 @@ public class ClientConfig {
         return vipChannelEnabled;
     }
 
-    public void setVipChannelEnabled(final boolean vipChannelEnabled) {
+    public void setVipChannelEnabled(boolean vipChannelEnabled) {
         this.vipChannelEnabled = vipChannelEnabled;
     }
 
@@ -307,4 +318,5 @@ public class ClientConfig {
             + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException + ", unitMode=" + unitMode + ", unitName=" + unitName + ", vipChannelEnabled="
             + vipChannelEnabled + ", useTLS=" + useTLS + ", language=" + language.name() + ", namespace=" + namespace + "]";
     }
+
 }

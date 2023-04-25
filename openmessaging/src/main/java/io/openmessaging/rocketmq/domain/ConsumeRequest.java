@@ -21,13 +21,15 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class ConsumeRequest {
+
     private final MessageExt messageExt;
     private final MessageQueue messageQueue;
     private final ProcessQueue processQueue;
     private long startConsumeTimeMillis;
 
-    public ConsumeRequest(final MessageExt messageExt, final MessageQueue messageQueue,
-        final ProcessQueue processQueue) {
+    public ConsumeRequest(MessageExt messageExt,
+                          MessageQueue messageQueue,
+                          ProcessQueue processQueue) {
         this.messageExt = messageExt;
         this.messageQueue = messageQueue;
         this.processQueue = processQueue;
@@ -52,4 +54,5 @@ public class ConsumeRequest {
     public void setStartConsumeTimeMillis(final long startConsumeTimeMillis) {
         this.startConsumeTimeMillis = startConsumeTimeMillis;
     }
+
 }

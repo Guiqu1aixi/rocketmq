@@ -20,16 +20,17 @@
  */
 package org.apache.rocketmq.store;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.rocketmq.common.UtilAll;
 import org.junit.After;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MappedFileTest {
+
     private final String storeMessage = "Once, there was a chance for me!";
 
     @Test
@@ -57,4 +58,5 @@ public class MappedFileTest {
         File file = new File("target/unit_test_store");
         UtilAll.deleteFile(file);
     }
+
 }

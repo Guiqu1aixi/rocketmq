@@ -52,7 +52,6 @@ public class NamesrvStartup {
     }
 
     public static NamesrvController main0(String[] args) {
-
         try {
             NamesrvController controller = createNamesrvController(args);
             start(controller);
@@ -68,6 +67,13 @@ public class NamesrvStartup {
         return null;
     }
 
+    /**
+     * 先创建 NameServerConfig (NameServer业务参数）、 NettyServerConfig(NameServer网络参数）
+     * 然后在解析启动时把指定的配置文件或启动命令中的选项值，填充到 nameServerConfig nettyServerConfig 对象
+     * 参数来源两种方式：
+     * 1 ) -c configFile命令 指定配置文件的路径
+     * 2 ) 使用“--属性名 属性值”，如：--listenPort 9876
+     */
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
@@ -79,8 +85,8 @@ public class NamesrvStartup {
             return null;
         }
 
-        final NamesrvConfig namesrvConfig = new NamesrvConfig();
-        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        NamesrvConfig namesrvConfig = new NamesrvConfig();
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
@@ -97,7 +103,7 @@ public class NamesrvStartup {
                 in.close();
             }
         }
-
+        /* -p来指定是否打印配置项，在指定些选项时，直接退出 */
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
@@ -106,7 +112,7 @@ public class NamesrvStartup {
         }
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
-
+        /* 没有配置Rocketmq 主目录，会直接推出 */
         if (null == namesrvConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
@@ -123,7 +129,7 @@ public class NamesrvStartup {
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
-        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
+        NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
         // remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
@@ -131,8 +137,7 @@ public class NamesrvStartup {
         return controller;
     }
 
-    public static NamesrvController start(final NamesrvController controller) throws Exception {
-
+    public static NamesrvController start(NamesrvController controller) throws Exception {
         if (null == controller) {
             throw new IllegalArgumentException("NamesrvController is null");
         }
@@ -142,17 +147,16 @@ public class NamesrvStartup {
             controller.shutdown();
             System.exit(-3);
         }
-
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
+        /* 注册Jvm钩子函数 */
+        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(
+            log,
+            (Callable<Void>) () -> {
                 controller.shutdown();
                 return null;
             }
-        }));
+        ));
 
         controller.start();
-
         return controller;
     }
 
@@ -175,4 +179,5 @@ public class NamesrvStartup {
     public static Properties getProperties() {
         return properties;
     }
+
 }

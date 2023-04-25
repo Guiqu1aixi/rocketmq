@@ -211,12 +211,7 @@ public class DefaultMQProducerTest {
                 countDownLatch.countDown();
             }
         };
-        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
-            @Override
-            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                return null;
-            }
-        };
+        MessageQueueSelector messageQueueSelector = (mqs, msg, arg) -> null;
 
         Message message = new Message();
         message.setTopic("test");
@@ -226,7 +221,7 @@ public class DefaultMQProducerTest {
         producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
         producer.send(new Message(), messageQueueSelector, null, sendCallback);
         producer.send(message, messageQueueSelector, null, sendCallback, 1000);
-        //this message is send success
+        /* this message is send success */
         producer.send(message, sendCallback, 1000);
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
@@ -253,12 +248,7 @@ public class DefaultMQProducerTest {
                 countDownLatch.countDown();
             }
         };
-        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
-            @Override
-            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                return null;
-            }
-        };
+        MessageQueueSelector messageQueueSelector = (mqs, msg, arg) -> null;
 
         List<Message> msgs = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
@@ -311,28 +301,22 @@ public class DefaultMQProducerTest {
 
             @Override
             public void sendMessageBefore(final SendMessageContext context) {
-                assertionErrors[0] = assertInOtherThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        assertThat(context.getMessage()).isEqualTo(message);
-                        assertThat(context.getProducer()).isEqualTo(producer);
-                        assertThat(context.getCommunicationMode()).isEqualTo(CommunicationMode.SYNC);
-                        assertThat(context.getSendResult()).isNull();
-                    }
+                assertionErrors[0] = assertInOtherThread(() -> {
+                    assertThat(context.getMessage()).isEqualTo(message);
+                    assertThat(context.getProducer()).isEqualTo(producer);
+                    assertThat(context.getCommunicationMode()).isEqualTo(CommunicationMode.SYNC);
+                    assertThat(context.getSendResult()).isNull();
                 });
                 countDownLatch.countDown();
             }
 
             @Override
             public void sendMessageAfter(final SendMessageContext context) {
-                assertionErrors[0] = assertInOtherThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        assertThat(context.getMessage()).isEqualTo(message);
-                        assertThat(context.getProducer()).isEqualTo(producer.getDefaultMQProducerImpl());
-                        assertThat(context.getCommunicationMode()).isEqualTo(CommunicationMode.SYNC);
-                        assertThat(context.getSendResult()).isNotNull();
-                    }
+                assertionErrors[0] = assertInOtherThread(() -> {
+                    assertThat(context.getMessage()).isEqualTo(message);
+                    assertThat(context.getProducer()).isEqualTo(producer.getDefaultMQProducerImpl());
+                    assertThat(context.getCommunicationMode()).isEqualTo(CommunicationMode.SYNC);
+                    assertThat(context.getSendResult()).isNotNull();
                 });
                 countDownLatch.countDown();
             }
@@ -430,21 +414,16 @@ public class DefaultMQProducerTest {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override public void onSuccess(Message message) {
+            @Override
+            public void onSuccess(Message message) {}
 
-            }
-
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
                 cc.incrementAndGet();
                 countDownLatch.countDown();
             }
         };
-        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
-            @Override
-            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                return null;
-            }
-        };
+        MessageQueueSelector messageQueueSelector = (mqs, msg, arg) -> null;
 
         try {
             producer.request(message, requestCallback, 3 * 1000L);
@@ -497,16 +476,13 @@ public class DefaultMQProducerTest {
         return sendResult;
     }
 
-    private Throwable assertInOtherThread(final Runnable runnable) {
+    private Throwable assertInOtherThread(Runnable runnable) {
         final Throwable[] assertionErrors = new Throwable[1];
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    runnable.run();
-                } catch (AssertionError e) {
-                    assertionErrors[0] = e;
-                }
+        Thread thread = new Thread(() -> {
+            try {
+                runnable.run();
+            } catch (AssertionError e) {
+                assertionErrors[0] = e;
             }
         });
         thread.start();

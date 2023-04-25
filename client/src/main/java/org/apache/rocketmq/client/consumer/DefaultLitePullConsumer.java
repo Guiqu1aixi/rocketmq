@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -31,6 +29,9 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+
+import java.util.Collection;
+import java.util.List;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
 
@@ -47,7 +48,10 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private String consumerGroup;
 
     /**
-     * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
+     * 长轮训模式下，拉取消息请求 Hold 的时间，默认20s，可调整
+     *
+     * Long polling mode, the Consumer connection max suspend time,
+     * it is not recommended to modify
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
 
@@ -490,4 +494,5 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void setConsumeTimestamp(String consumeTimestamp) {
         this.consumeTimestamp = consumeTimestamp;
     }
+
 }

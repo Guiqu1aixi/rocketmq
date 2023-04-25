@@ -16,12 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -42,16 +36,24 @@ import org.junit.runner.RunWith;
 import org.mockito.internal.util.reflection.FieldSetter;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
+
     private MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     private String topic = "FooBar";
     private String group = "FooBarGroup";
-    private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
+    private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
     @Before
     public void init() throws Exception {
@@ -62,18 +64,18 @@ public class MQClientInstanceTest {
     public void testTopicRouteData2TopicPublishInfo() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
-        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);
@@ -93,7 +95,7 @@ public class MQClientInstanceTest {
     public void testFindBrokerAddressInSubscribe() {
         // dledger normal case
         String brokerName = "BrokerA";
-        HashMap<Long, String> addrMap = new HashMap<Long, String>();
+        HashMap<Long, String> addrMap = new HashMap<>();
         addrMap.put(0L, "127.0.0.1:10911");
         addrMap.put(1L, "127.0.0.1:10912");
         addrMap.put(2L, "127.0.0.1:10913");
@@ -106,7 +108,7 @@ public class MQClientInstanceTest {
 
         // dledger case, when node n0 was voted as the leader
         brokerName = "BrokerB";
-        HashMap<Long, String> addrMapNew = new HashMap<Long, String>();
+        HashMap<Long, String> addrMapNew = new HashMap<>();
         addrMapNew.put(0L, "127.0.0.1:10911");
         addrMapNew.put(2L, "127.0.0.1:10912");
         addrMapNew.put(3L, "127.0.0.1:10913");
@@ -131,7 +133,7 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testRegisterConsumer() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testRegisterConsumer() {
         boolean flag = mqClientInstance.registerConsumer(group, mock(MQConsumerInner.class));
         assertThat(flag).isTrue();
 
@@ -145,7 +147,7 @@ public class MQClientInstanceTest {
 
 
     @Test
-    public void testConsumerRunningInfoWhenConsumersIsEmptyOrNot() throws RemotingException, InterruptedException, MQBrokerException {
+    public void testConsumerRunningInfoWhenConsumersIsEmptyOrNot() {
         MQConsumerInner mockConsumerInner = mock(MQConsumerInner.class);
         ConsumerRunningInfo mockConsumerRunningInfo = mock(ConsumerRunningInfo.class);
         when(mockConsumerInner.consumerRunningInfo()).thenReturn(mockConsumerRunningInfo);

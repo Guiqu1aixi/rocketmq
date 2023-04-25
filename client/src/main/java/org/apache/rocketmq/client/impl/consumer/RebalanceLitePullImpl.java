@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.List;
-import java.util.Set;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
@@ -29,6 +27,9 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+
+import java.util.List;
+import java.util.Set;
 
 public class RebalanceLitePullImpl extends RebalanceImpl {
 
@@ -47,7 +48,9 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        MessageQueueListener messageQueueListener = this.litePullConsumerImpl.getDefaultLitePullConsumer().getMessageQueueListener();
+        MessageQueueListener messageQueueListener =
+            this.litePullConsumerImpl.getDefaultLitePullConsumer().getMessageQueueListener();
+
         if (messageQueueListener != null) {
             try {
                 messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
@@ -122,7 +125,8 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         }
                     } else {
                         try {
-                            long timestamp = UtilAll.parseDate(this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp(),
+                            long timestamp = UtilAll.parseDate(
+                                this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp(),
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
@@ -140,6 +144,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
 
     @Override
     public void dispatchPullRequest(List<PullRequest> pullRequestList) {
+
     }
 
 }

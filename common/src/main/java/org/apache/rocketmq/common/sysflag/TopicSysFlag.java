@@ -60,6 +60,4 @@ public class TopicSysFlag {
         return (sysFlag & FLAG_UNIT_SUB) == FLAG_UNIT_SUB;
     }
 
-    public static void main(String[] args) {
-    }
 }

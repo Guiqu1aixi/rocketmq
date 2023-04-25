@@ -17,8 +17,21 @@
 package org.apache.rocketmq.client.impl;
 
 public class FindBrokerResult {
+
+    /**
+     * broker 地址
+     */
     private final String brokerAddr;
+
+    /**
+     * 这个是给出的建议
+     * 建议下去消息拉取是从主节点拉取还是从节点拉取
+     */
     private final boolean slave;
+
+    /**
+     * broker 版本
+     */
     private final int brokerVersion;
 
     public FindBrokerResult(String brokerAddr, boolean slave) {
@@ -44,4 +57,5 @@ public class FindBrokerResult {
     public int getBrokerVersion() {
         return brokerVersion;
     }
+
 }

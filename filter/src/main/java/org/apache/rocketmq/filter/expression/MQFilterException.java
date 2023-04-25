@@ -21,6 +21,7 @@ package org.apache.rocketmq.filter.expression;
  * Exception.
  */
 public class MQFilterException extends Exception {
+
     private static final long serialVersionUID = 1L;
     private final int responseCode;
     private final String errorMessage;
@@ -43,4 +44,5 @@ public class MQFilterException extends Exception {
     public String getErrorMessage() {
         return errorMessage;
     }
+
 }

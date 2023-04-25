@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,12 +35,9 @@ public class ServiceProvider {
 
     public static final String TRANSACTION_LISTENER_ID = "META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener";
 
-
     public static final String RPC_HOOK_ID = "META-INF/service/org.apache.rocketmq.remoting.RPCHook";
 
-
     public static final String ACL_VALIDATOR_ID = "META-INF/service/org.apache.rocketmq.acl.AccessValidator";
-
 
 
     static {
@@ -96,28 +94,21 @@ public class ServiceProvider {
 
     public static <T> List<T> load(String name, Class<?> clazz) {
         LOG.info("Looking for a resource file of name [{}] ...", name);
-        List<T> services = new ArrayList<T>();
+        List<T> services = new ArrayList<>();
         try {
-            ArrayList<String> names = new ArrayList<String>();
-            final InputStream is = getResourceAsStream(getContextClassLoader(), name);
+            ArrayList<String> names = new ArrayList<>();
+            InputStream is = getResourceAsStream(getContextClassLoader(), name);
             if (is != null) {
                 BufferedReader reader;
-                try {
-                    reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-                } catch (java.io.UnsupportedEncodingException e) {
-                    reader = new BufferedReader(new InputStreamReader(is));
-                }
+                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String serviceName = reader.readLine();
                 while (serviceName != null && !"".equals(serviceName)) {
-                    LOG.info(
-                        "Creating an instance as specified by file {} which was present in the path of the context classloader.",
-                        name);
+                    LOG.info("Creating an instance as specified by file {} which was present in the path of the context classloader.", name);
                     if (!names.contains(serviceName)) {
                         names.add(serviceName);
                     }
 
                     services.add((T)initService(getContextClassLoader(), serviceName, clazz));
-
                     serviceName = reader.readLine();
                 }
                 reader.close();
@@ -128,6 +119,7 @@ public class ServiceProvider {
         } catch (Exception e) {
             LOG.error("Error occured when looking for resource file " + name, e);
         }
+
         return services;
     }
 
@@ -136,11 +128,7 @@ public class ServiceProvider {
         if (is != null) {
             BufferedReader reader;
             try {
-                try {
-                    reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-                } catch (java.io.UnsupportedEncodingException e) {
-                    reader = new BufferedReader(new InputStreamReader(is));
-                }
+                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String serviceName = reader.readLine();
                 reader.close();
                 if (serviceName != null && !"".equals(serviceName)) {
@@ -170,8 +158,8 @@ public class ServiceProvider {
                         // This indicates a problem with the ClassLoader tree. An incompatible ClassLoader was used to load the implementation.
                         LOG.error(
                             "Class {} loaded from classloader {} does not extend {} as loaded by this classloader.",
-                            new Object[] {serviceClazz.getName(),
-                                objectId(serviceClazz.getClassLoader()), clazz.getName()});
+                            new Object[] {serviceClazz.getName(), objectId(serviceClazz.getClassLoader()), clazz.getName()}
+                        );
                     }
                     return (T)serviceClazz.newInstance();
                 } catch (ClassNotFoundException ex) {
@@ -181,7 +169,6 @@ public class ServiceProvider {
                             objectId(classLoader));
                         throw ex;
                     }
-                    // Ignore exception, continue
                 } catch (NoClassDefFoundError e) {
                     if (classLoader == thisClassLoader) {
                         // Nothing more to try, onwards.
@@ -190,12 +177,13 @@ public class ServiceProvider {
                             serviceClazz, objectId(classLoader));
                         throw e;
                     }
-                    // Ignore exception, continue
                 }
             }
         } catch (Exception e) {
             LOG.error("Unable to init service.", e);
         }
+
         return (T)serviceClazz;
     }
+
 }

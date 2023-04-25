@@ -17,13 +17,10 @@
 
 package org.apache.rocketmq.test.message;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.factory.MQMessageFactory;
+
+import java.util.*;
 
 public class MessageQueueMsg {
     private Map<MessageQueue, List<Object>> msgsWithMQ = null;

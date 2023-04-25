@@ -16,10 +16,11 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class GetMessageResult {
 

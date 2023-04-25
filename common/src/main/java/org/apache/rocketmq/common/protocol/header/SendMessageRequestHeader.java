@@ -26,6 +26,7 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class SendMessageRequestHeader implements CommandCustomHeader {
+
     @CFNotNull
     private String producerGroup;
     @CFNotNull
@@ -44,6 +45,9 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private Integer flag;
     @CFNullable
     private String properties;
+    /**
+     * 重试次数
+     */
     @CFNullable
     private Integer reconsumeTimes;
     @CFNullable

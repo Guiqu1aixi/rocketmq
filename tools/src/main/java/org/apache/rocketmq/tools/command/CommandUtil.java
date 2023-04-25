@@ -16,14 +16,6 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
@@ -32,6 +24,8 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
+
+import java.util.*;
 
 public class CommandUtil {
 
@@ -61,7 +55,7 @@ public class CommandUtil {
             }
 
             String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
-            masterAndSlaveMap.put(masterAddr, new ArrayList<String>());
+            masterAndSlaveMap.put(masterAddr, new ArrayList<>());
 
             for (Long id : brokerData.getBrokerAddrs().keySet()) {
                 if (brokerData.getBrokerAddrs().get(id) == null || id == MixAll.MASTER_ID) {
@@ -75,10 +69,10 @@ public class CommandUtil {
         return masterAndSlaveMap;
     }
 
-    public static Set<String> fetchMasterAddrByClusterName(final MQAdminExt adminExt, final String clusterName)
+    public static Set<String> fetchMasterAddrByClusterName(MQAdminExt adminExt, String clusterName)
         throws InterruptedException, RemotingConnectException, RemotingTimeoutException,
         RemotingSendRequestException, MQBrokerException {
-        Set<String> masterSet = new HashSet<String>();
+        Set<String> masterSet = new HashSet<>();
 
         ClusterInfo clusterInfoSerializeWrapper = adminExt.examineBrokerClusterInfo();
 

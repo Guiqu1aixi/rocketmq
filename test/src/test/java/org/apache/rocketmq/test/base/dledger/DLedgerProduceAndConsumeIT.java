@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.test.base.dledger;
 
-import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -36,6 +35,8 @@ import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.UUID;
 
 import static org.apache.rocketmq.test.base.IntegrationTestBase.nextPort;
 import static sun.util.locale.BaseLocale.SEP;

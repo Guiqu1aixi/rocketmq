@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -27,6 +26,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.util.List;
 
 public class DefaultMQPushConsumerImplTest {
 
@@ -47,12 +48,9 @@ public class DefaultMQPushConsumerImplTest {
         consumer.setConsumeThreadMin(10);
         consumer.setConsumeThreadMax(9);
 
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                System.out.println(" Receive New Messages: " + msgs);
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
+        consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+            System.out.println(" Receive New Messages: " + msgs);
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
 
         DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(consumer, null);

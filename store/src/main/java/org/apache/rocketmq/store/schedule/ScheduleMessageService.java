@@ -16,69 +16,68 @@
  */
 package org.apache.rocketmq.store.schedule;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.running.RunningStats;
-import org.apache.rocketmq.store.ConsumeQueue;
-import org.apache.rocketmq.store.ConsumeQueueExt;
-import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.*;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class ScheduleMessageService extends ConfigManager {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private static final long FIRST_DELAY_TIME = 1000L;
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
 
-    private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+    /**
+     * ConcurrentMap<level, delay timeMillis>
+     */
+    private final ConcurrentMap<Integer, Long> delayLevelTable = new ConcurrentHashMap<>(32);
 
-    private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+    /**
+     * ConcurrentMap<level, offset>
+     */
+    private final ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap<>(32);
+
     private final DefaultMessageStore defaultMessageStore;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private Timer timer;
     private MessageStore writeMessageStore;
     private int maxDelayLevel;
 
-    public ScheduleMessageService(final DefaultMessageStore defaultMessageStore) {
+    public ScheduleMessageService(DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
         this.writeMessageStore = defaultMessageStore;
     }
 
-    public static int queueId2DelayLevel(final int queueId) {
+    public static int queueId2DelayLevel(int queueId) {
         return queueId + 1;
     }
 
-    public static int delayLevel2QueueId(final int delayLevel) {
+    /**
+     * 获取 ConsumeQueue Id
+     */
+    public static int delayLevel2QueueId(int delayLevel) {
         return delayLevel - 1;
     }
 
     /**
      * @param writeMessageStore
-     *     the writeMessageStore to set
+     * the writeMessageStore to set
      */
     public void setWriteMessageStore(MessageStore writeMessageStore) {
         this.writeMessageStore = writeMessageStore;
@@ -101,7 +100,7 @@ public class ScheduleMessageService extends ConfigManager {
         this.offsetTable.put(delayLevel, offset);
     }
 
-    public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
+    public long computeDeliverTimestamp(int delayLevel, long storeTimestamp) {
         Long time = this.delayLevelTable.get(delayLevel);
         if (time != null) {
             return time + storeTimestamp;
@@ -113,9 +112,11 @@ public class ScheduleMessageService extends ConfigManager {
     public void start() {
         if (started.compareAndSet(false, true)) {
             this.timer = new Timer("ScheduleMessageTimerThread", true);
+            /* Map<延时级别, 延时时长(毫秒)> */
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
                 Long timeDelay = entry.getValue();
+                /* 对应延迟级别的队列偏移量不存在则设置为0 */
                 Long offset = this.offsetTable.get(level);
                 if (null == offset) {
                     offset = 0L;
@@ -126,17 +127,21 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
 
-            this.timer.scheduleAtFixedRate(new TimerTask() {
-
-                @Override
-                public void run() {
-                    try {
-                        if (started.get()) ScheduleMessageService.this.persist();
-                    } catch (Throwable e) {
-                        log.error("scheduleAtFixedRate flush exception", e);
+            /* 等待10_000 ms 后每 flushDelayOffsetInterval(默认10_000) ms 后持久化一次偏移量信息 */
+            this.timer.scheduleAtFixedRate(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            if (started.get()) ScheduleMessageService.this.persist();
+                        } catch (Throwable e) {
+                            log.error("scheduleAtFixedRate flush exception", e);
+                        }
                     }
-                }
-            }, 10000, this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval());
+                },
+                10_000,
+                this.defaultMessageStore.getMessageStoreConfig().getFlushDelayOffsetInterval()
+            );
         }
     }
 
@@ -145,7 +150,6 @@ public class ScheduleMessageService extends ConfigManager {
             if (null != this.timer)
                 this.timer.cancel();
         }
-
     }
 
     public boolean isStarted() {
@@ -166,10 +170,12 @@ public class ScheduleMessageService extends ConfigManager {
         return result;
     }
 
+    /* 获取存储定时消息消费偏移量文件路径 */
     @Override
     public String configFilePath() {
-        return StorePathConfigHelper.getDelayOffsetStorePath(this.defaultMessageStore.getMessageStoreConfig()
-            .getStorePathRootDir());
+        return StorePathConfigHelper.getDelayOffsetStorePath(
+            this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir()
+        );
     }
 
     @Override
@@ -183,14 +189,14 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public String encode(final boolean prettyFormat) {
+    public String encode(boolean prettyFormat) {
         DelayOffsetSerializeWrapper delayOffsetSerializeWrapper = new DelayOffsetSerializeWrapper();
         delayOffsetSerializeWrapper.setOffsetTable(this.offsetTable);
         return delayOffsetSerializeWrapper.toJson(prettyFormat);
     }
 
     public boolean parseDelayLevel() {
-        HashMap<String, Long> timeUnitTable = new HashMap<String, Long>();
+        HashMap<String, Long> timeUnitTable = new HashMap<>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
         timeUnitTable.put("h", 1000L * 60 * 60);
@@ -237,18 +243,16 @@ public class ScheduleMessageService extends ConfigManager {
                     this.executeOnTimeup();
                 }
             } catch (Exception e) {
-                // XXX: warn and notify me
+                /* XXX: warn and notify me */
                 log.error("ScheduleMessageService, executeOnTimeup exception", e);
-                ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                    this.delayLevel, this.offset), DELAY_FOR_A_PERIOD);
+                ScheduleMessageService.this.timer.schedule(
+                    new DeliverDelayedMessageTimerTask(this.delayLevel, this.offset),
+                    DELAY_FOR_A_PERIOD
+                );
             }
         }
 
-        /**
-         * @return
-         */
-        private long correctDeliverTimestamp(final long now, final long deliverTimestamp) {
-
+        private long correctDeliverTimestamp(long now, long deliverTimestamp) {
             long result = deliverTimestamp;
 
             long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
@@ -260,9 +264,10 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         public void executeOnTimeup() {
-            ConsumeQueue cq =
-                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
-                    delayLevel2QueueId(delayLevel));
+            ConsumeQueue cq = ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(
+                TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                delayLevel2QueueId(delayLevel)
+            );
 
             long failScheduleOffset = offset;
 
@@ -270,7 +275,7 @@ public class ScheduleMessageService extends ConfigManager {
                 SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(this.offset);
                 if (bufferCQ != null) {
                     try {
-                        long nextOffset = offset;
+                        long nextOffset;
                         int i = 0;
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
@@ -282,9 +287,10 @@ public class ScheduleMessageService extends ConfigManager {
                                 if (cq.getExt(tagsCode, cqExtUnit)) {
                                     tagsCode = cqExtUnit.getTagsCode();
                                 } else {
-                                    //can't find ext content.So re compute tags code.
+                                    /* can't find ext content.So re compute tags code */
                                     log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
-                                        tagsCode, offsetPy, sizePy);
+                                        tagsCode, offsetPy, sizePy
+                                    );
                                     long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
                                     tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
                                 }
@@ -292,77 +298,74 @@ public class ScheduleMessageService extends ConfigManager {
 
                             long now = System.currentTimeMillis();
                             long deliverTimestamp = this.correctDeliverTimestamp(now, tagsCode);
-
                             nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
                             long countdown = deliverTimestamp - now;
-
                             if (countdown <= 0) {
-                                MessageExt msgExt =
-                                    ScheduleMessageService.this.defaultMessageStore.lookMessageByOffset(
-                                        offsetPy, sizePy);
+                                MessageExt msgExt = ScheduleMessageService.this.defaultMessageStore
+                                    .lookMessageByOffset(offsetPy, sizePy);
 
                                 if (msgExt != null) {
                                     try {
                                         MessageExtBrokerInner msgInner = this.messageTimeup(msgExt);
                                         if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                                             log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
-                                                    msgInner.getTopic(), msgInner);
+                                                msgInner.getTopic(), msgInner
+                                            );
                                             continue;
                                         }
                                         PutMessageResult putMessageResult =
-                                            ScheduleMessageService.this.writeMessageStore
-                                                .putMessage(msgInner);
+                                            ScheduleMessageService.this.writeMessageStore.putMessage(msgInner);
 
                                         if (putMessageResult != null
-                                            && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
-                                            continue;
+                                            && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK
+                                        ) {
+
                                         } else {
-                                            // XXX: warn and notify me
+                                            /* XXX: warn and notify me */
                                             log.error(
                                                 "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
-                                                msgExt.getTopic(), msgExt.getMsgId());
+                                                msgExt.getTopic(), msgExt.getMsgId()
+                                            );
                                             ScheduleMessageService.this.timer.schedule(
-                                                new DeliverDelayedMessageTimerTask(this.delayLevel,
-                                                    nextOffset), DELAY_FOR_A_PERIOD);
-                                            ScheduleMessageService.this.updateOffset(this.delayLevel,
-                                                nextOffset);
+                                                new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
+                                                DELAY_FOR_A_PERIOD
+                                            );
+                                            ScheduleMessageService.this.updateOffset(
+                                                this.delayLevel, nextOffset
+                                            );
                                             return;
                                         }
                                     } catch (Exception e) {
-                                        /*
-                                         * XXX: warn and notify me
-
-
-
-                                         */
+                                        /* XXX: warn and notify me */
                                         log.error(
                                             "ScheduleMessageService, messageTimeup execute error, drop it. msgExt="
                                                 + msgExt + ", nextOffset=" + nextOffset + ",offsetPy="
-                                                + offsetPy + ",sizePy=" + sizePy, e);
+                                                + offsetPy + ",sizePy=" + sizePy, e
+                                        );
                                     }
                                 }
                             } else {
                                 ScheduleMessageService.this.timer.schedule(
                                     new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
-                                    countdown);
+                                    countdown
+                                );
                                 ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                                 return;
                             }
-                        } // end of for
-
+                        } /* end of for */
                         nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
-                        ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(
-                            this.delayLevel, nextOffset), DELAY_FOR_A_WHILE);
+                        ScheduleMessageService.this.timer.schedule(
+                            new DeliverDelayedMessageTimerTask(this.delayLevel, nextOffset),
+                            DELAY_FOR_A_WHILE
+                        );
                         ScheduleMessageService.this.updateOffset(this.delayLevel, nextOffset);
                         return;
                     } finally {
-
                         bufferCQ.release();
                     }
-                } // end of if (bufferCQ != null)
+                } /* end of if (bufferCQ != null) */
                 else {
-
                     long cqMinOffset = cq.getMinOffsetInQueue();
                     if (offset < cqMinOffset) {
                         failScheduleOffset = cqMinOffset;
@@ -370,10 +373,12 @@ public class ScheduleMessageService extends ConfigManager {
                             + cqMinOffset + ", queueId=" + cq.getQueueId());
                     }
                 }
-            } // end of if (cq != null)
+            } /* end of if (cq != null) */
 
-            ScheduleMessageService.this.timer.schedule(new DeliverDelayedMessageTimerTask(this.delayLevel,
-                failScheduleOffset), DELAY_FOR_A_WHILE);
+            ScheduleMessageService.this.timer.schedule(
+                new DeliverDelayedMessageTimerTask(this.delayLevel, failScheduleOffset),
+                DELAY_FOR_A_WHILE
+            );
         }
 
         private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
@@ -406,4 +411,5 @@ public class ScheduleMessageService extends ConfigManager {
             return msgInner;
         }
     }
+
 }

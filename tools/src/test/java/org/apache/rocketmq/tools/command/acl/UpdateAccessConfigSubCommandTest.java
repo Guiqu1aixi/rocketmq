@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.acl;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -25,6 +23,9 @@ import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

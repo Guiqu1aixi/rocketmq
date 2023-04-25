@@ -41,17 +41,19 @@ public class MomentStatsItem {
     }
 
     public void init() {
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     printAtMinutes();
 
                     MomentStatsItem.this.value.set(0);
                 } catch (Throwable e) {
                 }
-            }
-        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 5, TimeUnit.MILLISECONDS);
+            },
+            Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()),
+            1000 * 60 * 5,
+            TimeUnit.MILLISECONDS
+        );
     }
 
     public void printAtMinutes() {

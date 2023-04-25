@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.test.client.mq;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.util.TestUtil;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MQAsyncProducer {
     private static Logger logger = Logger.getLogger(MQAsyncProducer.class);

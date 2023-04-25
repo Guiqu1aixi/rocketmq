@@ -17,13 +17,14 @@
 
 package org.apache.rocketmq.test.listener.rmq.concurrent;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RMQNormalListener extends AbstractListener implements MessageListenerConcurrently {
     private ConsumeConcurrentlyStatus consumeStatus = ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

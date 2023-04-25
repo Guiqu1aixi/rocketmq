@@ -49,16 +49,17 @@ public class MomentStatsItemSet {
     }
 
     public void init() {
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     printAtMinutes();
                 } catch (Throwable ignored) {
                 }
-            }
-        }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 5, TimeUnit.MILLISECONDS);
+            },
+            Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()),
+            1000 * 60 * 5,
+            TimeUnit.MILLISECONDS
+        );
     }
 
     private void printAtMinutes() {

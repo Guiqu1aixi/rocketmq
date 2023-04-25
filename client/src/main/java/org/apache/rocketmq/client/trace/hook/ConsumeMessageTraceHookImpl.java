@@ -19,18 +19,14 @@ package org.apache.rocketmq.client.trace.hook;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
-import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceContext;
-import org.apache.rocketmq.client.trace.TraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceBean;
-import org.apache.rocketmq.client.trace.TraceType;
+import org.apache.rocketmq.client.trace.*;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
 
 public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
 
@@ -52,9 +48,9 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         }
         TraceContext traceContext = new TraceContext();
         context.setMqTraceContext(traceContext);
-        traceContext.setTraceType(TraceType.SubBefore);//
+        traceContext.setTraceType(TraceType.SubBefore);
         traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getConsumerGroup()));//
-        List<TraceBean> beans = new ArrayList<TraceBean>();
+        List<TraceBean> beans = new ArrayList<>();
         for (MessageExt msg : context.getMsgList()) {
             if (msg == null) {
                 continue;
@@ -63,19 +59,19 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
             String traceOn = msg.getProperty(MessageConst.PROPERTY_TRACE_SWITCH);
 
             if (traceOn != null && traceOn.equals("false")) {
-                // If trace switch is false ,skip it
+                /* If trace switch is false ,skip it */
                 continue;
             }
             TraceBean traceBean = new TraceBean();
-            traceBean.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic()));//
-            traceBean.setMsgId(msg.getMsgId());//
-            traceBean.setTags(msg.getTags());//
-            traceBean.setKeys(msg.getKeys());//
-            traceBean.setStoreTime(msg.getStoreTimestamp());//
-            traceBean.setBodyLength(msg.getStoreSize());//
-            traceBean.setRetryTimes(msg.getReconsumeTimes());//
+            traceBean.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic()));
+            traceBean.setMsgId(msg.getMsgId());
+            traceBean.setTags(msg.getTags());
+            traceBean.setKeys(msg.getKeys());
+            traceBean.setStoreTime(msg.getStoreTimestamp());
+            traceBean.setBodyLength(msg.getStoreSize());
+            traceBean.setRetryTimes(msg.getReconsumeTimes());
             traceBean.setClientHost(((AsyncTraceDispatcher)localDispatcher).getHostConsumer().getmQClientFactory().getClientId());
-            traceContext.setRegionId(regionId);//
+            traceContext.setRegionId(regionId);
             beans.add(traceBean);
         }
         if (beans.size() > 0) {

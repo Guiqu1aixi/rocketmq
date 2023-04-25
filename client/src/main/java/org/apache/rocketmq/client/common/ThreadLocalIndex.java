@@ -20,7 +20,8 @@ package org.apache.rocketmq.client.common;
 import java.util.Random;
 
 public class ThreadLocalIndex {
-    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<Integer>();
+
+    private final ThreadLocal<Integer> threadLocalIndex = new ThreadLocal<>();
     private final Random random = new Random();
 
     public int getAndIncrement() {
@@ -41,4 +42,5 @@ public class ThreadLocalIndex {
             "threadLocalIndex=" + threadLocalIndex.get() +
             '}';
     }
+
 }

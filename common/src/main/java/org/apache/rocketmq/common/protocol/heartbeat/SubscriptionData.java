@@ -27,12 +27,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
+
     public final static String SUB_ALL = "*";
     private boolean classFilterMode = false;
     private String topic;
     private String subString;
-    private Set<String> tagsSet = new HashSet<String>();
-    private Set<Integer> codeSet = new HashSet<Integer>();
+    private Set<String> tagsSet = new HashSet<>();
+    private Set<Integer> codeSet = new HashSet<>();
     private long subVersion = System.currentTimeMillis();
     private String expressionType = ExpressionType.TAG;
 

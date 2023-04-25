@@ -19,15 +19,19 @@ package org.apache.rocketmq.broker.client;
 public enum ConsumerGroupEvent {
 
     /**
+     * Consumer数目变化时触发事件
      * Some consumers in the group are changed.
      */
     CHANGE,
+
     /**
      * The group of consumer is unregistered.
      */
     UNREGISTER,
+
     /**
      * The group of consumer is registered.
      */
     REGISTER
+
 }

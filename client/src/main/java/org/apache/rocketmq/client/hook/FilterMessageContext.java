@@ -16,9 +16,10 @@
  */
 package org.apache.rocketmq.client.hook;
 
-import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.List;
 
 public class FilterMessageContext {
     private String consumerGroup;

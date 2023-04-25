@@ -17,15 +17,9 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -44,6 +38,7 @@ import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ChannelUtil;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -54,7 +49,14 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
+
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
@@ -163,8 +165,15 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         return response;
     }
 
-    protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
-        final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+    /**
+     * 检查消息是否合理
+     */
+    protected RemotingCommand msgCheck(ChannelHandlerContext ctx,
+        SendMessageRequestHeader requestHeader, RemotingCommand response) {
+        /**
+         * 检查当前 Broker 节点是否可写
+         * Topic 可以控制读写权限，这一特性对运维十分有用，比如顺序消息扩缩容需要禁止读写才好优雅完成
+         */
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -180,8 +189,8 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             return response;
         }
 
-        TopicConfig topicConfig =
-            this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager()
+            .selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
@@ -193,18 +202,21 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
             }
 
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
-            topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
-                requestHeader.getTopic(),
-                requestHeader.getDefaultTopic(),
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
+            /* ⚠️: 这里居然真的可能会创建Topic */
+            topicConfig = this.brokerController.getTopicConfigManager()
+                .createTopicInSendMessageMethod(
+                    requestHeader.getTopic(), requestHeader.getDefaultTopic(),
+                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                    requestHeader.getDefaultTopicQueueNums(), topicSysFlag
+                );
 
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                    topicConfig =
-                        this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                            requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
-                            topicSysFlag);
+                    topicConfig = this.brokerController.getTopicConfigManager()
+                        .createTopicInSendMessageBackMethod(
+                            requestHeader.getTopic(), 1,
+                            PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag
+                        );
                 }
             }
 
@@ -220,16 +232,16 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
-                queueIdInt,
-                topicConfig.toString(),
-                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                queueIdInt, topicConfig.toString(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel())
+            );
 
             log.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
-
             return response;
         }
+
         return response;
     }
 
@@ -250,12 +262,12 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         }
     }
 
-    public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
+    public void executeSendMessageHookBefore(ChannelHandlerContext ctx, RemotingCommand request,
         SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
-                    final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+                    SendMessageRequestHeader requestHeader = parseRequestHeader(request);
 
                     String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
                     if (null != requestHeader) {
@@ -281,8 +293,8 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
     }
 
     protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
-        throws RemotingCommandException {
-
+        throws RemotingCommandException
+    {
         SendMessageRequestHeaderV2 requestHeaderV2 = null;
         SendMessageRequestHeader requestHeader = null;
         switch (request.getCode()) {
@@ -305,7 +317,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         return requestHeader;
     }
 
-    public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {
+    public void executeSendMessageHookAfter(RemotingCommand response, SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
@@ -330,4 +342,5 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
     public boolean rejectRequest() {
         return false;
     }
+
 }

@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.tools.command.offset;
 
-import java.util.Date;
-import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -31,6 +29,9 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.util.Date;
+import java.util.List;
 
 public class ResetOffsetByTimeOldCommand implements SubCommand {
     public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic,

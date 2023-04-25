@@ -135,40 +135,37 @@ public class TransactionProducer {
         producer.start();
 
         for (int i = 0; i < config.threadCount; i++) {
-            sendThreadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    while (true) {
-                        boolean success = false;
-                        final long beginTimestamp = System.currentTimeMillis();
-                        try {
-                            SendResult sendResult =
-                                    producer.sendMessageInTransaction(buildMessage(config), null);
-                            success = sendResult != null && sendResult.getSendStatus() == SendStatus.SEND_OK;
-                        } catch (Throwable e) {
-                            success = false;
-                        } finally {
-                            final long currentRT = System.currentTimeMillis() - beginTimestamp;
-                            statsBenchmark.getSendMessageTimeTotal().addAndGet(currentRT);
-                            long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
-                            while (currentRT > prevMaxRT) {
-                                boolean updated = statsBenchmark.getSendMessageMaxRT()
-                                        .compareAndSet(prevMaxRT, currentRT);
-                                if (updated)
-                                    break;
+            sendThreadPool.execute(() -> {
+                while (true) {
+                    boolean success = false;
+                    final long beginTimestamp = System.currentTimeMillis();
+                    try {
+                        SendResult sendResult =
+                                producer.sendMessageInTransaction(buildMessage(config), null);
+                        success = sendResult != null && sendResult.getSendStatus() == SendStatus.SEND_OK;
+                    } catch (Throwable e) {
+                        success = false;
+                    } finally {
+                        final long currentRT = System.currentTimeMillis() - beginTimestamp;
+                        statsBenchmark.getSendMessageTimeTotal().addAndGet(currentRT);
+                        long prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
+                        while (currentRT > prevMaxRT) {
+                            boolean updated = statsBenchmark.getSendMessageMaxRT()
+                                    .compareAndSet(prevMaxRT, currentRT);
+                            if (updated)
+                                break;
 
-                                prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
-                            }
-                            if (success) {
-                                statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
-                            } else {
-                                statsBenchmark.getSendRequestFailedCount().incrementAndGet();
-                            }
-                            if (config.sendInterval > 0) {
-                                try {
-                                    Thread.sleep(config.sendInterval);
-                                } catch (InterruptedException e) {
-                                }
+                            prevMaxRT = statsBenchmark.getSendMessageMaxRT().get();
+                        }
+                        if (success) {
+                            statsBenchmark.getSendRequestSuccessCount().incrementAndGet();
+                        } else {
+                            statsBenchmark.getSendRequestFailedCount().incrementAndGet();
+                        }
+                        if (config.sendInterval > 0) {
+                            try {
+                                Thread.sleep(config.sendInterval);
+                            } catch (InterruptedException e) {
                             }
                         }
                     }

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.netty;
 
 public class NettyClientConfig {
+
     /**
      * Worker thread number
      */
@@ -135,4 +136,5 @@ public class NettyClientConfig {
     public void setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
     }
+
 }

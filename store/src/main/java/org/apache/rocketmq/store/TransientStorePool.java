@@ -18,9 +18,6 @@ package org.apache.rocketmq.store;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
-import java.nio.ByteBuffer;
-import java.util.Deque;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -28,12 +25,34 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
+import java.nio.ByteBuffer;
+import java.util.Deque;
+import java.util.concurrent.ConcurrentLinkedDeque;
+
+/**
+ * 为了防止操作系统的虚拟内存机制将进程已经占用的物理内存交换到磁盘
+ * @see LibC#mlock 方法，可以将制定内存锁定
+ * 即使长时间不访问，操作系统仍然不会交换这部分物理内存
+ */
 public class TransientStorePool {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    /**
+     * poolSize 默认大小为 5
+     */
     private final int poolSize;
+
+    /**
+     * fileSize 默认大小为 1G
+     */
     private final int fileSize;
+
+    /**
+     * ByteBuffer 容器，双端队列
+     */
     private final Deque<ByteBuffer> availableBuffers;
+
     private final MessageStoreConfig storeConfig;
 
     public TransientStorePool(final MessageStoreConfig storeConfig) {

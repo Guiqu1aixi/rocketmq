@@ -17,23 +17,25 @@
 
 package org.apache.rocketmq.client.latency;
 
+import org.apache.rocketmq.client.common.ThreadLocalIndex;
+
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
-    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
+
+    private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<>(16);
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
     @Override
-    public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
+    public void updateFaultItem(String name, long currentLatency, long notAvailableDuration) {
         FaultItem old = this.faultItemTable.get(name);
         if (null == old) {
-            final FaultItem faultItem = new FaultItem(name);
+            FaultItem faultItem = new FaultItem(name);
             faultItem.setCurrentLatency(currentLatency);
             faultItem.setStartTimestamp(System.currentTimeMillis() + notAvailableDuration);
 
@@ -49,8 +51,8 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     }
 
     @Override
-    public boolean isAvailable(final String name) {
-        final FaultItem faultItem = this.faultItemTable.get(name);
+    public boolean isAvailable(String name) {
+        FaultItem faultItem = this.faultItemTable.get(name);
         if (faultItem != null) {
             return faultItem.isAvailable();
         }
@@ -58,16 +60,16 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     }
 
     @Override
-    public void remove(final String name) {
+    public void remove(String name) {
         this.faultItemTable.remove(name);
     }
 
     @Override
     public String pickOneAtLeast() {
-        final Enumeration<FaultItem> elements = this.faultItemTable.elements();
-        List<FaultItem> tmpList = new LinkedList<FaultItem>();
+        Enumeration<FaultItem> elements = this.faultItemTable.elements();
+        List<FaultItem> tmpList = new LinkedList<>();
         while (elements.hasMoreElements()) {
-            final FaultItem faultItem = elements.nextElement();
+            FaultItem faultItem = elements.nextElement();
             tmpList.add(faultItem);
         }
 
@@ -76,11 +78,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
             Collections.sort(tmpList);
 
-            final int half = tmpList.size() / 2;
+            int half = tmpList.size() / 2;
             if (half <= 0) {
                 return tmpList.get(0).getName();
             } else {
-                final int i = this.whichItemWorst.getAndIncrement() % half;
+                int i = this.whichItemWorst.getAndIncrement() % half;
                 return tmpList.get(i).getName();
             }
         }
@@ -96,17 +98,17 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             '}';
     }
 
-    class FaultItem implements Comparable<FaultItem> {
-        private final String name;
+   static class FaultItem implements Comparable<FaultItem> {
+        private String name;
         private volatile long currentLatency;
         private volatile long startTimestamp;
 
-        public FaultItem(final String name) {
+        public FaultItem(String name) {
             this.name = name;
         }
 
         @Override
-        public int compareTo(final FaultItem other) {
+        public int compareTo(FaultItem other) {
             if (this.isAvailable() != other.isAvailable()) {
                 if (this.isAvailable())
                     return -1;
@@ -143,13 +145,13 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         @Override
-        public boolean equals(final Object o) {
+        public boolean equals(Object o) {
             if (this == o)
                 return true;
             if (!(o instanceof FaultItem))
                 return false;
 
-            final FaultItem faultItem = (FaultItem) o;
+            FaultItem faultItem = (FaultItem) o;
 
             if (getCurrentLatency() != faultItem.getCurrentLatency())
                 return false;
@@ -176,7 +178,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             return currentLatency;
         }
 
-        public void setCurrentLatency(final long currentLatency) {
+        public void setCurrentLatency(long currentLatency) {
             this.currentLatency = currentLatency;
         }
 
@@ -184,7 +186,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             return startTimestamp;
         }
 
-        public void setStartTimestamp(final long startTimestamp) {
+        public void setStartTimestamp(long startTimestamp) {
             this.startTimestamp = startTimestamp;
         }
 

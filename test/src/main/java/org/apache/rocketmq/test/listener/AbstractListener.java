@@ -17,18 +17,17 @@
 
 package org.apache.rocketmq.test.listener;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.test.clientinterface.MQCollector;
 import org.apache.rocketmq.test.util.TestUtil;
 
+import java.util.*;
+
 public class AbstractListener extends MQCollector implements MessageListener {
+
     public static Logger logger = Logger.getLogger(AbstractListener.class);
+
     protected boolean isDebug = false;
     protected String listenerName = null;
     protected Collection<Object> allSendMsgs = null;
@@ -63,10 +62,9 @@ public class AbstractListener extends MQCollector implements MessageListener {
     }
 
     public Collection<Object> waitForMessageConsume(Collection<Object> allSendMsgs,
-        int timeoutMills) {
+                                                    int timeoutMills) {
         this.allSendMsgs = allSendMsgs;
-        List<Object> sendMsgs = new ArrayList<Object>();
-        sendMsgs.addAll(allSendMsgs);
+        List<Object> sendMsgs = new ArrayList<>(allSendMsgs);
 
         long curTime = System.currentTimeMillis();
         while (!sendMsgs.isEmpty()) {
@@ -95,9 +93,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
         return sendMsgs;
     }
 
-    public long waitForMessageConsume(int size,
-        int timeoutMills) {
-
+    public long waitForMessageConsume(int size, int timeoutMills) {
         long curTime = System.currentTimeMillis();
         while (true) {
             if (msgBodys.getDataSize() >= size) {
@@ -105,11 +101,13 @@ public class AbstractListener extends MQCollector implements MessageListener {
             }
             if (System.currentTimeMillis() - curTime >= timeoutMills) {
                 logger.error(String.format("timeout but  [%s]  not recv all send messages!",
-                    listenerName));
+                    listenerName)
+                );
                 break;
             } else {
-                logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
-                    size - msgBodys.getDataSize()));
+                logger.info(String.format("[%s] still [%s] msg not recv!",
+                    listenerName, size - msgBodys.getDataSize())
+                );
                 TestUtil.waitForMonment(500);
             }
         }

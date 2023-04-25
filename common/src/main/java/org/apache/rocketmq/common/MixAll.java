@@ -32,6 +32,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class MixAll {
+
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
@@ -94,29 +96,28 @@ public class MixAll {
         return wsAddr;
     }
 
-    public static String getRetryTopic(final String consumerGroup) {
+    public static String getRetryTopic(String consumerGroup) {
         return RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
-    public static String getReplyTopic(final String clusterName) {
+    public static String getReplyTopic(String clusterName) {
         return clusterName + "_" + REPLY_TOPIC_POSTFIX;
     }
 
-    public static boolean isSysConsumerGroup(final String consumerGroup) {
+    public static boolean isSysConsumerGroup(String consumerGroup) {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
-    public static String getDLQTopic(final String consumerGroup) {
+    public static String getDLQTopic(String consumerGroup) {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
-    public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
+    public static String brokerVIPChannel(boolean isChange, String brokerAddr) {
         if (isChange) {
             int split = brokerAddr.lastIndexOf(":");
             String ip = brokerAddr.substring(0, split);
             String port = brokerAddr.substring(split + 1);
-            String brokerAddrNew = ip + ":" + (Integer.parseInt(port) - 2);
-            return brokerAddrNew;
+            return ip + ":" + (Integer.parseInt(port) - 2);
         } else {
             return brokerAddr;
         }
@@ -135,8 +136,7 @@ public class MixAll {
         return 0;
     }
 
-    public static void string2File(final String str, final String fileName) throws IOException {
-
+    public static void string2File(String str, String fileName) throws IOException {
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
@@ -153,45 +153,31 @@ public class MixAll {
         file.renameTo(new File(fileName));
     }
 
-    public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
+    public static void string2FileNotSafe(String str, String fileName) throws IOException {
         File file = new File(fileName);
         File fileParent = file.getParentFile();
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        FileWriter fileWriter = null;
 
-        try {
-            fileWriter = new FileWriter(file);
+        try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(str);
-        } catch (IOException e) {
-            throw e;
-        } finally {
-            if (fileWriter != null) {
-                fileWriter.close();
-            }
         }
     }
 
-    public static String file2String(final String fileName) throws IOException {
+    public static String file2String(String fileName) throws IOException {
         File file = new File(fileName);
         return file2String(file);
     }
 
-    public static String file2String(final File file) throws IOException {
+    public static String file2String(File file) throws IOException {
         if (file.exists()) {
             byte[] data = new byte[(int) file.length()];
             boolean result;
 
-            FileInputStream inputStream = null;
-            try {
-                inputStream = new FileInputStream(file);
+            try (FileInputStream inputStream = new FileInputStream(file)) {
                 int len = inputStream.read(data);
                 result = len == data.length;
-            } finally {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
             }
 
             if (result) {
@@ -201,7 +187,7 @@ public class MixAll {
         return null;
     }
 
-    public static String file2String(final URL url) {
+    public static String file2String(URL url) {
         InputStream in = null;
         try {
             URLConnection urlConnection = url.openConnection();
@@ -210,8 +196,9 @@ public class MixAll {
             int len = in.available();
             byte[] data = new byte[len];
             in.read(data, 0, len);
-            return new String(data, "UTF-8");
+            return new String(data, StandardCharsets.UTF_8);
         } catch (Exception ignored) {
+
         } finally {
             if (null != in) {
                 try {
@@ -224,12 +211,12 @@ public class MixAll {
         return null;
     }
 
-    public static void printObjectProperties(final InternalLogger logger, final Object object) {
+    public static void printObjectProperties(InternalLogger logger, Object object) {
         printObjectProperties(logger, object, false);
     }
 
-    public static void printObjectProperties(final InternalLogger logger, final Object object,
-        final boolean onlyImportantField) {
+    public static void printObjectProperties(InternalLogger logger, Object object,
+        boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {
@@ -262,7 +249,7 @@ public class MixAll {
         }
     }
 
-    public static String properties2String(final Properties properties) {
+    public static String properties2String(Properties properties) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<Object, Object> entry : properties.entrySet()) {
             if (entry.getValue() != null) {
@@ -272,7 +259,7 @@ public class MixAll {
         return sb.toString();
     }
 
-    public static Properties string2Properties(final String str) {
+    public static Properties string2Properties(String str) {
         Properties properties = new Properties();
         try {
             InputStream in = new ByteArrayInputStream(str.getBytes(DEFAULT_CHARSET));
@@ -285,7 +272,7 @@ public class MixAll {
         return properties;
     }
 
-    public static Properties object2Properties(final Object object) {
+    public static Properties object2Properties(Object object) {
         Properties properties = new Properties();
 
         Field[] fields = object.getClass().getDeclaredFields();
@@ -311,7 +298,7 @@ public class MixAll {
         return properties;
     }
 
-    public static void properties2Object(final Properties p, final Object object) {
+    public static void properties2Object(Properties p, Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();
@@ -351,12 +338,12 @@ public class MixAll {
         }
     }
 
-    public static boolean isPropertiesEqual(final Properties p1, final Properties p2) {
+    public static boolean isPropertiesEqual(Properties p1, Properties p2) {
         return p1.equals(p2);
     }
 
     public static List<String> getLocalInetAddress() {
-        List<String> inetAddressList = new ArrayList<String>();
+        List<String> inetAddressList = new ArrayList<>();
         try {
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
             while (enumeration.hasMoreElements()) {
@@ -421,7 +408,7 @@ public class MixAll {
         return null;
     }
 
-    public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {
+    public static boolean compareAndIncreaseOnly(AtomicLong target, long value) {
         long prev = target.get();
         while (value > prev) {
             boolean updated = target.compareAndSet(prev, value);

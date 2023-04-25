@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.test.factory;
 
-import java.util.UUID;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.test.util.RandomUtil;
+
+import java.util.UUID;
 
 public class ProducerFactory {
 

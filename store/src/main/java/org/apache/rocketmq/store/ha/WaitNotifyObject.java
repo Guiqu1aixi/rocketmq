@@ -24,10 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WaitNotifyObject {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    protected final HashMap<Long/* thread id */, Boolean/* notified */> waitingThreadTable =
-        new HashMap<Long, Boolean>(16);
+    /**
+     * Map<thread id, notified>
+     */
+    protected final HashMap<Long, Boolean> waitingThreadTable = new HashMap<>(16);
 
     protected volatile boolean hasNotified = false;
 
@@ -104,4 +107,5 @@ public class WaitNotifyObject {
             this.waitingThreadTable.remove(currentThreadId);
         }
     }
+
 }

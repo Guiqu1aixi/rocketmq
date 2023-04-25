@@ -16,14 +16,35 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
+import java.util.List;
+
 public class PullResult {
+
+    /**
+     * 标志拉取结果
+     */
     private final PullStatus pullStatus;
+
+    /**
+     * 下次拉取的起始偏移量
+     */
     private final long nextBeginOffset;
+
+    /**
+     * 本次拉取消息的最小偏移量
+     */
     private final long minOffset;
+
+    /**
+     * 本次拉取消息的最大偏移量
+     */
     private final long maxOffset;
+
+    /**
+     * 拉取到的消息集合
+     */
     private List<MessageExt> msgFoundList;
 
     public PullResult(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,
@@ -66,4 +87,5 @@ public class PullResult {
             + ", minOffset=" + minOffset + ", maxOffset=" + maxOffset + ", msgFoundList="
             + (msgFoundList == null ? 0 : msgFoundList.size()) + "]";
     }
+
 }

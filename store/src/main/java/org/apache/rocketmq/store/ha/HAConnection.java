@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.store.ha;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -28,18 +23,26 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+
 public class HAConnection {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
     private final HAService haService;
     private final SocketChannel socketChannel;
     private final String clientAddr;
-    private WriteSocketService writeSocketService;
-    private ReadSocketService readSocketService;
+    private final WriteSocketService writeSocketService;
+    private final ReadSocketService readSocketService;
 
     private volatile long slaveRequestOffset = -1;
     private volatile long slaveAckOffset = -1;
 
-    public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
+    public HAConnection(HAService haService, SocketChannel socketChannel) throws IOException {
         this.haService = haService;
         this.socketChannel = socketChannel;
         this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
@@ -201,7 +204,7 @@ public class HAConnection {
         private boolean lastWriteOver = true;
         private long lastWriteTimestamp = System.currentTimeMillis();
 
-        public WriteSocketService(final SocketChannel socketChannel) throws IOException {
+        public WriteSocketService(SocketChannel socketChannel) throws IOException {
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
@@ -387,4 +390,5 @@ public class HAConnection {
             super.shutdown();
         }
     }
+
 }

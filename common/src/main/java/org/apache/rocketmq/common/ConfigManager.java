@@ -22,6 +22,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public abstract class ConfigManager {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public abstract String encode();
@@ -67,11 +68,15 @@ public abstract class ConfigManager {
 
     public abstract void decode(final String jsonString);
 
+    /**
+     * 持久化每个队列偏移量
+     */
     public synchronized void persist() {
         String jsonString = this.encode(true);
         if (jsonString != null) {
             String fileName = this.configFilePath();
             try {
+                /** @see MixAll#string2FileNotSafe **/
                 MixAll.string2File(jsonString, fileName);
             } catch (IOException e) {
                 log.error("persist file " + fileName + " exception", e);
@@ -80,4 +85,5 @@ public abstract class ConfigManager {
     }
 
     public abstract String encode(final boolean prettyFormat);
+
 }

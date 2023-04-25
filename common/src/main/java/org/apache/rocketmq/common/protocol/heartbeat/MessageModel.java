@@ -24,10 +24,12 @@ package org.apache.rocketmq.common.protocol.heartbeat;
  * Message model
  */
 public enum MessageModel {
+
     /**
      * broadcast
      */
     BROADCASTING("BROADCASTING"),
+
     /**
      * clustering
      */
@@ -42,4 +44,5 @@ public enum MessageModel {
     public String getModeCN() {
         return modeCN;
     }
+
 }

@@ -40,6 +40,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 
 public class PullConsumerImpl implements PullConsumer {
+
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final KeyValue properties;
     private boolean started = false;
@@ -141,36 +142,36 @@ public class PullConsumerImpl implements PullConsumer {
         this.started = true;
     }
 
-    private void registerPullTaskCallback(final String targetQueueName) {
-        this.pullConsumerScheduleService.registerPullTaskCallback(targetQueueName, new PullTaskCallback() {
-            @Override
-            public void doPullTask(final MessageQueue mq, final PullTaskContext context) {
-                MQPullConsumer consumer = context.getPullConsumer();
-                try {
-                    long offset = localMessageCache.nextPullOffset(mq);
+    private void registerPullTaskCallback(String targetQueueName) {
+        PullTaskCallback callback = (mq, context) -> {
+            MQPullConsumer consumer = context.getPullConsumer();
+            try {
+                long offset = localMessageCache.nextPullOffset(mq);
 
-                    PullResult pullResult = consumer.pull(mq, "*",
-                        offset, localMessageCache.nextPullBatchNums());
-                    ProcessQueue pq = rocketmqPullConsumer.getDefaultMQPullConsumerImpl().getRebalanceImpl()
+                PullResult pullResult = consumer.pull(mq, "*", offset, localMessageCache.nextPullBatchNums());
+                ProcessQueue pq = rocketmqPullConsumer.getDefaultMQPullConsumerImpl().getRebalanceImpl()
                         .getProcessQueueTable().get(mq);
-                    switch (pullResult.getPullStatus()) {
-                        case FOUND:
-                            if (pq != null) {
-                                pq.putMessage(pullResult.getMsgFoundList());
-                                for (final MessageExt messageExt : pullResult.getMsgFoundList()) {
-                                    localMessageCache.submitConsumeRequest(new ConsumeRequest(messageExt, mq, pq));
-                                }
+                switch (pullResult.getPullStatus()) {
+                    case FOUND:
+                        if (pq != null) {
+                            pq.putMessage(pullResult.getMsgFoundList());
+                            for (MessageExt messageExt : pullResult.getMsgFoundList()) {
+                                localMessageCache.submitConsumeRequest(new ConsumeRequest(messageExt, mq, pq));
                             }
-                            break;
-                        default:
-                            break;
-                    }
-                    localMessageCache.updatePullOffset(mq, pullResult.getNextBeginOffset());
-                } catch (Exception e) {
-                    log.error("An error occurred in pull message process.", e);
+                        }
+                        break;
+                    default:
+                        break;
                 }
+                localMessageCache.updatePullOffset(mq, pullResult.getNextBeginOffset());
+            } catch (Exception e) {
+                log.error("An error occurred in pull message process.", e);
             }
-        });
+        };
+
+        this.pullConsumerScheduleService.registerPullTaskCallback(
+            targetQueueName, callback
+        );
     }
 
     @Override

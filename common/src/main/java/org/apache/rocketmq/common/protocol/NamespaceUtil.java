@@ -101,8 +101,11 @@ public class NamespaceUtil {
             stringBuilder.append(MixAll.DLQ_GROUP_TOPIC_PREFIX);
         }
 
-        return stringBuilder.append(namespace).append(NAMESPACE_SEPARATOR).append(resourceWithoutRetryAndDLQ).toString();
-
+        return stringBuilder
+                .append(namespace)
+                .append(NAMESPACE_SEPARATOR)
+                .append(resourceWithoutRetryAndDLQ)
+                .toString();
     }
 
     public static boolean isAlreadyWithNamespace(String resource, String namespace) {
@@ -164,10 +167,12 @@ public class NamespaceUtil {
     }
 
     public static boolean isRetryTopic(String resource) {
-        return StringUtils.isNotBlank(resource) && resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        return StringUtils.isNotBlank(resource)
+                && resource.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
     }
 
     public static boolean isDLQTopic(String resource) {
-        return StringUtils.isNotBlank(resource) && resource.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX);
+        return StringUtils.isNotBlank(resource)
+                && resource.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX);
     }
 }

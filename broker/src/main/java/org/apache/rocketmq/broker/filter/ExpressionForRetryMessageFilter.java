@@ -31,6 +31,7 @@ import java.util.Map;
  * <br>It will decode properties first in order to get real topic.
  */
 public class ExpressionForRetryMessageFilter extends ExpressionMessageFilter {
+
     public ExpressionForRetryMessageFilter(SubscriptionData subscriptionData, ConsumerFilterData consumerFilterData,
         ConsumerFilterManager consumerFilterManager) {
         super(subscriptionData, consumerFilterData, consumerFilterManager);

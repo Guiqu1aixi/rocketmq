@@ -16,6 +16,16 @@
  */
 package org.apache.rocketmq.store.index;
 
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,42 +33,50 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class IndexService {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
     /**
-     * Maximum times to attempt index file creation.
+     * Maximum times to attempt index file creation
+     * 尝试创建索引文件的最大次数
      */
     private static final int MAX_TRY_IDX_CREATE = 3;
     private final DefaultMessageStore defaultMessageStore;
+
+    /**
+     * Hash Slot数量默认500_0000
+     * @see org.apache.rocketmq.store.config.MessageStoreConfig#maxHashSlotNum
+     */
     private final int hashSlotNum;
+
+    /**
+     * 从 Hash Slot 数量与 Index 条目数量上看，百分之百会产生 Hash 碰撞
+     *
+     * Index 条目数量默认2000_0000
+     * @see org.apache.rocketmq.store.config.MessageStoreConfig#maxIndexNum
+     */
     private final int indexNum;
+
     private final String storePath;
-    private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
+    private final ArrayList<IndexFile> indexFileList = new ArrayList<>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
-    public IndexService(final DefaultMessageStore store) {
+    public IndexService(DefaultMessageStore store) {
         this.defaultMessageStore = store;
         this.hashSlotNum = store.getMessageStoreConfig().getMaxHashSlotNum();
+        /* 默认 2000_0000 */
         this.indexNum = store.getMessageStoreConfig().getMaxIndexNum();
         this.storePath =
             StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
     }
 
-    public boolean load(final boolean lastExitOK) {
+    public boolean load(boolean lastExitOK) {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
         if (files != null) {
-            // ascending order
+            /* ascending order 升序排列 */
             Arrays.sort(files);
             for (File file : files) {
                 try {
@@ -66,6 +84,7 @@ public class IndexService {
                     f.load();
 
                     if (!lastExitOK) {
+                        /* 索引文件上次刷盘时间小于该文件最大消息时间戳该文件立即销毁 */
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
                             f.destroy(0);
@@ -106,7 +125,7 @@ public class IndexService {
         }
 
         if (files != null) {
-            List<IndexFile> fileList = new ArrayList<IndexFile>();
+            List<IndexFile> fileList = new ArrayList<>();
             for (int i = 0; i < (files.length - 1); i++) {
                 IndexFile f = (IndexFile) files[i];
                 if (f.getEndPhyOffset() < offset) {
@@ -155,7 +174,7 @@ public class IndexService {
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
-        List<Long> phyOffsets = new ArrayList<Long>(maxNum);
+        List<Long> phyOffsets = new ArrayList<>(maxNum);
 
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
@@ -172,7 +191,6 @@ public class IndexService {
                     }
 
                     if (f.isTimeMatched(begin, end)) {
-
                         f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end, lastFile);
                     }
 
@@ -327,14 +345,13 @@ public class IndexService {
                 this.readWriteLock.writeLock().unlock();
             }
 
+            /* IndexFile落盘线程 */
             if (indexFile != null) {
-                final IndexFile flushThisFile = prevIndexFile;
-                Thread flushThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        IndexService.this.flush(flushThisFile);
-                    }
-                }, "FlushIndexFileThread");
+                IndexFile flushThisFile = prevIndexFile;
+                Thread flushThread = new Thread(
+                    () -> IndexService.this.flush(flushThisFile),
+                    "FlushIndexFileThread"
+                );
 
                 flushThread.setDaemon(true);
                 flushThread.start();
@@ -369,4 +386,5 @@ public class IndexService {
     public void shutdown() {
 
     }
+
 }

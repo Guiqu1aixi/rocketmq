@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.tools.command.offset;
 
-import java.util.Iterator;
-import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -31,6 +29,12 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+import java.util.Iterator;
+import java.util.Map;
+
+/**
+ * 重置消费位点的RPC命令
+ */
 public class ResetOffsetByTimeCommand implements SubCommand {
 
     @Override
@@ -82,13 +86,12 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                     timestamp = Long.parseLong(timeStampStr);
                 }
             } catch (NumberFormatException e) {
-
                 timestamp = UtilAll.parseDate(timeStampStr, UtilAll.YYYY_MM_DD_HH_MM_SS_SSS).getTime();
             }
 
             boolean force = true;
             if (commandLine.hasOption('f')) {
-                force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+                force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
             }
 
             boolean isC = false;
@@ -108,13 +111,11 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 throw e;
             }
 
-            System.out.printf("rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
-                group, topic, force, timeStampStr, timestamp);
-
-            System.out.printf("%-40s  %-40s  %-40s%n",
-                "#brokerName",
-                "#queueId",
-                "#offset");
+            System.out.printf(
+                "rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+                group, topic, force, timeStampStr, timestamp
+            );
+            System.out.printf("%-40s  %-40s  %-40s%n", "#brokerName", "#queueId", "#offset");
 
             Iterator<Map.Entry<MessageQueue, Long>> iterator = offsetTable.entrySet().iterator();
             while (iterator.hasNext()) {
@@ -122,7 +123,8 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 System.out.printf("%-40s  %-40d  %-40d%n",
                     UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),
                     entry.getKey().getQueueId(),
-                    entry.getValue());
+                    entry.getValue()
+                );
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
@@ -130,4 +132,5 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             defaultMQAdminExt.shutdown();
         }
     }
+
 }

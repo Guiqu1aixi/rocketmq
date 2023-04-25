@@ -22,7 +22,9 @@ import org.apache.rocketmq.common.message.MessageQueue;
  * Consumer concurrent consumption context
  */
 public class ConsumeConcurrentlyContext {
+
     private final MessageQueue messageQueue;
+
     /**
      * Message consume retry strategy<br>
      * -1,no retry,put into DLQ directly<br>
@@ -55,4 +57,5 @@ public class ConsumeConcurrentlyContext {
     public void setAckIndex(int ackIndex) {
         this.ackIndex = ackIndex;
     }
+
 }

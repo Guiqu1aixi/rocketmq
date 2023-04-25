@@ -24,6 +24,7 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * Add reset feature for @see java.util.concurrent.CountDownLatch
  */
 public class CountDownLatch2 {
+
     private final Sync sync;
 
     /**
@@ -159,6 +160,7 @@ public class CountDownLatch2 {
      * Uses AQS state to represent count.
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
+
         private static final long serialVersionUID = 4982264981922014374L;
 
         private final int startCount;
@@ -178,7 +180,7 @@ public class CountDownLatch2 {
 
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
-            for (; ; ) {
+            for (; ;) {
                 int c = getState();
                 if (c == 0)
                     return false;
@@ -192,4 +194,5 @@ public class CountDownLatch2 {
             setState(startCount);
         }
     }
+
 }

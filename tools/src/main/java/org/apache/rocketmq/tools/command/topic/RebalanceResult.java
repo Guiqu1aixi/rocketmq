@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.tools.command.topic;
 
+import org.apache.rocketmq.common.message.MessageQueue;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.common.message.MessageQueue;
 
 public class RebalanceResult {
     private Map<String/*ip*/, List<MessageQueue>> result = new HashMap<String, List<MessageQueue>>();

@@ -40,7 +40,7 @@ public class ServerUtil {
         return options;
     }
 
-    public static CommandLine parseCmdLine(final String appName, String[] args, Options options,
+    public static CommandLine parseCmdLine(String appName, String[] args, Options options,
         CommandLineParser parser) {
         HelpFormatter hf = new HelpFormatter();
         hf.setWidth(110);

@@ -16,43 +16,69 @@
  */
 package org.apache.rocketmq.store.config;
 
+import org.apache.rocketmq.store.DefaultMessageStore;
+
 import java.io.File;
 
+/**
+ * 文件路径获取
+ */
 public class StorePathConfigHelper {
 
-    public static String getStorePathConsumeQueue(final String rootDir) {
+    public static String getStorePathConsumeQueue(String rootDir) {
         return rootDir + File.separator + "consumequeue";
     }
 
-    public static String getStorePathConsumeQueueExt(final String rootDir) {
+    public static String getStorePathConsumeQueueExt(String rootDir) {
         return rootDir + File.separator + "consumequeue_ext";
     }
 
-    public static String getStorePathIndex(final String rootDir) {
+    public static String getStorePathIndex(String rootDir) {
         return rootDir + File.separator + "index";
     }
 
-    public static String getStoreCheckpoint(final String rootDir) {
+    /**
+     * 获取文件监测点文件路径
+     *
+     * 存储内容：
+     * CommitLog 文件最后一次刷盘时间戳、ConsumerQueue 最后一次刷盘时间戳、 Index 索引最后一次刷盘时间戳
+     *
+     * @see DefaultMessageStore#load
+     * @see DefaultMessageStore#destroy
+     *
+     * @param rootDir ${ROCKET_HOME}/store
+     */
+    public static String getStoreCheckpoint(String rootDir) {
         return rootDir + File.separator + "checkpoint";
     }
 
-    public static String getAbortFile(final String rootDir) {
+    /**
+     * 获取 "abort" 文件的物理路径
+     * 如果 Broker 处于关闭状态存在这个文件则说明 Broker 非正常关闭
+     * 该文件会在启动时默认创建，正常退出时自动删除
+     *
+     * @see DefaultMessageStore#destroy
+     * @see DefaultMessageStore#shutdown
+     *
+     * @param rootDir ${ROCKET_HOME}/store
+     */
+    public static String getAbortFile(String rootDir) {
         return rootDir + File.separator + "abort";
     }
 
-    public static String getLockFile(final String rootDir) {
+    public static String getLockFile(String rootDir) {
         return rootDir + File.separator + "lock";
     }
 
-    public static String getDelayOffsetStorePath(final String rootDir) {
+    public static String getDelayOffsetStorePath(String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "delayOffset.json";
     }
 
-    public static String getTranStateTableStorePath(final String rootDir) {
+    public static String getTranStateTableStorePath(String rootDir) {
         return rootDir + File.separator + "transaction" + File.separator + "statetable";
     }
 
-    public static String getTranRedoLogStorePath(final String rootDir) {
+    public static String getTranRedoLogStorePath(String rootDir) {
         return rootDir + File.separator + "transaction" + File.separator + "redolog";
     }
 

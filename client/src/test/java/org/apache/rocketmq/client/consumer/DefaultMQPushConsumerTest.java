@@ -97,13 +97,7 @@ public class DefaultMQPushConsumerTest {
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
 
-        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                return null;
-            }
-        });
+        pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> null);
 
         DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
         PowerMockito.suppress(PowerMockito.method(DefaultMQPushConsumerImpl.class, "updateTopicSubscribeInfoWhenSubscriptionChanged"));
@@ -174,14 +168,10 @@ public class DefaultMQPushConsumerTest {
     public void testPullMessage_Success() throws InterruptedException, RemotingException, MQBrokerException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final MessageExt[] messageExts = new MessageExt[1];
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                messageExts[0] = msgs.get(0);
-                countDownLatch.countDown();
-                return null;
-            }
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), (msgs, context) -> {
+            messageExts[0] = msgs.get(0);
+            countDownLatch.countDown();
+            return null;
         }));
 
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
@@ -287,13 +277,7 @@ public class DefaultMQPushConsumerTest {
 
     private DefaultMQPushConsumer createPushConsumer() {
         DefaultMQPushConsumer pushConsumer = new DefaultMQPushConsumer(consumerGroup);
-        pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                ConsumeConcurrentlyContext context) {
-                return null;
-            }
-        });
+        pushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> null);
         return pushConsumer;
     }
 

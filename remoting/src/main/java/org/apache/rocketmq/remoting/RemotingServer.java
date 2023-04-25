@@ -27,24 +27,24 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface RemotingServer extends RemotingService {
 
-    void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
-        final ExecutorService executor);
+    void registerProcessor(int requestCode, NettyRequestProcessor processor,
+        ExecutorService executor);
 
-    void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor);
+    void registerDefaultProcessor(NettyRequestProcessor processor, ExecutorService executor);
 
     int localListenPort();
 
-    Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(final int requestCode);
+    Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(int requestCode);
 
-    RemotingCommand invokeSync(final Channel channel, final RemotingCommand request,
-        final long timeoutMillis) throws InterruptedException, RemotingSendRequestException,
+    RemotingCommand invokeSync(Channel channel, RemotingCommand request,
+        long timeoutMillis) throws InterruptedException, RemotingSendRequestException,
         RemotingTimeoutException;
 
-    void invokeAsync(final Channel channel, final RemotingCommand request, final long timeoutMillis,
-        final InvokeCallback invokeCallback) throws InterruptedException,
+    void invokeAsync(Channel channel, RemotingCommand request, long timeoutMillis,
+        InvokeCallback invokeCallback) throws InterruptedException,
         RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException;
 
-    void invokeOneway(final Channel channel, final RemotingCommand request, final long timeoutMillis)
+    void invokeOneway(Channel channel, RemotingCommand request, long timeoutMillis)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException;
 

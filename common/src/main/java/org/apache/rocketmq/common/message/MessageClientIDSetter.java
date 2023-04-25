@@ -111,6 +111,13 @@ public class MessageClientIDSetter {
         return value & 0x0000FFFF;
     }
 
+    /**
+     * 全局唯一Id，client端生成，跟msgId相同
+     * 该ID 是消息发送者在消息发送时会首先在客户端生成，全局唯一，该 ID 还有另外的一个叫法：uniqId
+     *
+     * 还有一个offsetMsgId
+     * @see MessageDecoder#createMessageId(ByteBuffer, ByteBuffer, long)
+     */
     public static String createUniqID() {
         StringBuilder sb = new StringBuilder(LEN * 2);
         sb.append(FIX_STRING);

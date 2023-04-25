@@ -30,12 +30,13 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RemotingHelper {
+
     public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
     public static final String DEFAULT_CHARSET = "UTF-8";
 
     private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_REMOTING);
 
-    public static String exceptionSimpleDesc(final Throwable e) {
+    public static String exceptionSimpleDesc(Throwable e) {
         StringBuffer sb = new StringBuffer();
         if (e != null) {
             sb.append(e.toString());
@@ -51,7 +52,7 @@ public class RemotingHelper {
         return sb.toString();
     }
 
-    public static SocketAddress string2SocketAddress(final String addr) {
+    public static SocketAddress string2SocketAddress(String addr) {
         int split = addr.lastIndexOf(":");
         String host = addr.substring(0, split);
         String port = addr.substring(split + 1);
@@ -59,8 +60,8 @@ public class RemotingHelper {
         return isa;
     }
 
-    public static RemotingCommand invokeSync(final String addr, final RemotingCommand request,
-        final long timeoutMillis) throws InterruptedException, RemotingConnectException,
+    public static RemotingCommand invokeSync(String addr, RemotingCommand request,
+        long timeoutMillis) throws InterruptedException, RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException {
         long beginTime = System.currentTimeMillis();
         SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
@@ -69,7 +70,6 @@ public class RemotingHelper {
             boolean sendRequestOK = false;
 
             try {
-
                 socketChannel.configureBlocking(true);
 
                 //bugfix  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4614802
@@ -151,12 +151,12 @@ public class RemotingHelper {
         }
     }
 
-    public static String parseChannelRemoteAddr(final Channel channel) {
+    public static String parseChannelRemoteAddr(Channel channel) {
         if (null == channel) {
             return "";
         }
         SocketAddress remote = channel.remoteAddress();
-        final String addr = remote != null ? remote.toString() : "";
+        String addr = remote != null ? remote.toString() : "";
 
         if (addr.length() > 0) {
             int index = addr.lastIndexOf("/");
@@ -172,7 +172,7 @@ public class RemotingHelper {
 
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
         if (socketAddress != null) {
-            final String addr = socketAddress.toString();
+            String addr = socketAddress.toString();
 
             if (addr.length() > 0) {
                 return addr.substring(1);

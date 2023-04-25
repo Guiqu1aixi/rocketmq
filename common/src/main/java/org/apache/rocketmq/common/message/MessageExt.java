@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageExt extends Message {
+
     private static final long serialVersionUID = 5720810158625748049L;
 
     private String brokerName;
@@ -40,6 +41,7 @@ public class MessageExt extends Message {
 
     private long storeTimestamp;
     private SocketAddress storeHost;
+    /* offsetMsgId */
     private String msgId;
     private long commitLogOffset;
     private int bodyCRC;
@@ -47,8 +49,7 @@ public class MessageExt extends Message {
 
     private long preparedTransactionOffset;
 
-    public MessageExt() {
-    }
+    public MessageExt() {}
 
     public MessageExt(int queueId, long bornTimestamp, SocketAddress bornHost, long storeTimestamp,
         SocketAddress storeHost, String msgId) {
@@ -60,7 +61,7 @@ public class MessageExt extends Message {
         this.msgId = msgId;
     }
 
-    public static TopicFilterType parseTopicFilterType(final int sysFlag) {
+    public static TopicFilterType parseTopicFilterType(int sysFlag) {
         if ((sysFlag & MessageSysFlag.MULTI_TAGS_FLAG) == MessageSysFlag.MULTI_TAGS_FLAG) {
             return TopicFilterType.MULTI_TAG;
         }
@@ -68,7 +69,7 @@ public class MessageExt extends Message {
         return TopicFilterType.SINGLE_TAG;
     }
 
-    public static ByteBuffer socketAddress2ByteBuffer(final SocketAddress socketAddress, final ByteBuffer byteBuffer) {
+    public static ByteBuffer socketAddress2ByteBuffer(SocketAddress socketAddress, ByteBuffer byteBuffer) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
         InetAddress address = inetSocketAddress.getAddress();
         if (address instanceof Inet4Address) {
@@ -247,11 +248,13 @@ public class MessageExt extends Message {
 
     @Override
     public String toString() {
-        return "MessageExt [brokerName=" + brokerName + ", queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
+        return "MessageExt [brokerName=" + brokerName + ", queueId=" + queueId
+            + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
             + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
             + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
             + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
             + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
             + ", toString()=" + super.toString() + "]";
     }
+
 }

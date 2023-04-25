@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.broker;
 
-import java.io.UnsupportedEncodingException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -27,6 +26,8 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.io.UnsupportedEncodingException;
 
 public class SendMsgStatusCommand implements SubCommand {
 

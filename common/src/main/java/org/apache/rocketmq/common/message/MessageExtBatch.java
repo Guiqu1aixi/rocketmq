@@ -37,4 +37,5 @@ public class MessageExtBatch extends MessageExt {
     public void setEncodedBuff(ByteBuffer encodedBuff) {
         this.encodedBuff = encodedBuff;
     }
+
 }

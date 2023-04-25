@@ -16,29 +16,8 @@
  */
 package org.apache.rocketmq.broker;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.broker.client.ClientHousekeepingService;
-import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
-import org.apache.rocketmq.broker.client.ConsumerManager;
-import org.apache.rocketmq.broker.client.DefaultConsumerIdsChangeListener;
-import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.broker.client.*;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
@@ -55,14 +34,7 @@ import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.MessageStoreFactory;
 import org.apache.rocketmq.broker.plugin.MessageStorePluginContext;
-import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
-import org.apache.rocketmq.broker.processor.ClientManageProcessor;
-import org.apache.rocketmq.broker.processor.ConsumerManageProcessor;
-import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
-import org.apache.rocketmq.broker.processor.PullMessageProcessor;
-import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
-import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
-import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.processor.*;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -73,16 +45,10 @@ import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageC
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.ServiceProvider;
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.Configuration;
-import org.apache.rocketmq.common.DataVersion;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -90,12 +56,7 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.remoting.netty.RequestTask;
-import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.remoting.netty.*;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.FileWatchService;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -107,10 +68,19 @@ import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static org.apache.rocketmq.common.protocol.RequestCode.*;
+
 public class BrokerController {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
+
     private final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
@@ -128,10 +98,17 @@ public class BrokerController {
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     private final BrokerOuterAPI brokerOuterAPI;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "BrokerControllerScheduledThread"));
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryImpl("BrokerControllerScheduledThread")
+    );
     private final SlaveSynchronize slaveSynchronize;
+
+    /**
+     * 默认队列容量大小是 10000
+     * @see org.apache.rocketmq.common.BrokerConfig.sendThreadPoolQueueCapacity
+     */
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
+
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
     private final BlockingQueue<Runnable> replyThreadPoolQueue;
     private final BlockingQueue<Runnable> queryThreadPoolQueue;
@@ -141,8 +118,8 @@ public class BrokerController {
     private final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
     private final FilterServerManager filterServerManager;
     private final BrokerStatsManager brokerStatsManager;
-    private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
-    private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
+    private final List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+    private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
     private MessageStore messageStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
@@ -159,20 +136,18 @@ public class BrokerController {
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
-    private BrokerFastFailure brokerFastFailure;
-    private Configuration configuration;
+    private final BrokerFastFailure brokerFastFailure;
+    private final Configuration configuration;
     private FileWatchService fileWatchService;
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
     private Future<?> slaveSyncFuture;
-    private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
+    private final Map<Class<?>,AccessValidator> accessValidatorMap = new HashMap<>();
 
     public BrokerController(
-        final BrokerConfig brokerConfig,
-        final NettyServerConfig nettyServerConfig,
-        final NettyClientConfig nettyClientConfig,
-        final MessageStoreConfig messageStoreConfig
+        BrokerConfig brokerConfig, NettyServerConfig nettyServerConfig,
+        NettyClientConfig nettyClientConfig, MessageStoreConfig messageStoreConfig
     ) {
         this.brokerConfig = brokerConfig;
         this.nettyServerConfig = nettyServerConfig;
@@ -195,14 +170,14 @@ public class BrokerController {
 
         this.slaveSynchronize = new SlaveSynchronize(this);
 
-        this.sendThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getSendThreadPoolQueueCapacity());
-        this.pullThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getPullThreadPoolQueueCapacity());
-        this.replyThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getReplyThreadPoolQueueCapacity());
-        this.queryThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getQueryThreadPoolQueueCapacity());
-        this.clientManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getClientManagerThreadPoolQueueCapacity());
-        this.consumerManagerThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getConsumerManagerThreadPoolQueueCapacity());
-        this.heartbeatThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getHeartbeatThreadPoolQueueCapacity());
-        this.endTransactionThreadPoolQueue = new LinkedBlockingQueue<Runnable>(this.brokerConfig.getEndTransactionPoolQueueCapacity());
+        this.sendThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+        this.pullThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPullThreadPoolQueueCapacity());
+        this.replyThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getReplyThreadPoolQueueCapacity());
+        this.queryThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getQueryThreadPoolQueueCapacity());
+        this.clientManagerThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getClientManagerThreadPoolQueueCapacity());
+        this.consumerManagerThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getConsumerManagerThreadPoolQueueCapacity());
+        this.heartbeatThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getHeartbeatThreadPoolQueueCapacity());
+        this.endTransactionThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getEndTransactionPoolQueueCapacity());
 
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
@@ -232,23 +207,23 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.topicConfigManager.load();
-
-        result = result && this.consumerOffsetManager.load();
-        result = result && this.subscriptionGroupManager.load();
-        result = result && this.consumerFilterManager.load();
+        boolean result = this.topicConfigManager.load()
+                && this.consumerOffsetManager.load()
+                && this.subscriptionGroupManager.load()
+                && this.consumerFilterManager.load();
 
         if (result) {
             try {
-                this.messageStore =
-                    new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
-                        this.brokerConfig);
+                this.messageStore = new DefaultMessageStore(
+                    this.messageStoreConfig, this.brokerStatsManager,
+                    this.messageArrivingListener, this.brokerConfig
+                );
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
                     ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
                 }
                 this.brokerStats = new BrokerStats((DefaultMessageStore) this.messageStore);
-                //load plugin
+                /* load plugin */
                 MessageStorePluginContext context = new MessageStorePluginContext(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig);
                 this.messageStore = MessageStoreFactory.build(context, this.messageStore);
                 this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
@@ -258,9 +233,7 @@ public class BrokerController {
             }
         }
 
-        result = result && this.messageStore.load();
-
-        if (result) {
+        if (result = result && this.messageStore.load()) {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
@@ -271,7 +244,8 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.sendThreadPoolQueue,
-                new ThreadFactoryImpl("SendMessageThread_"));
+                new ThreadFactoryImpl("SendMessageThread_")
+            );
 
             this.pullMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getPullMessageThreadPoolNums(),
@@ -279,7 +253,8 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.pullThreadPoolQueue,
-                new ThreadFactoryImpl("PullMessageThread_"));
+                new ThreadFactoryImpl("PullMessageThread_")
+            );
 
             this.replyMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getProcessReplyMessageThreadPoolNums(),
@@ -287,7 +262,8 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.replyThreadPoolQueue,
-                new ThreadFactoryImpl("ProcessReplyMessageThread_"));
+                new ThreadFactoryImpl("ProcessReplyMessageThread_")
+            );
 
             this.queryMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getQueryMessageThreadPoolNums(),
@@ -295,11 +271,13 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.queryThreadPoolQueue,
-                new ThreadFactoryImpl("QueryMessageThread_"));
+                new ThreadFactoryImpl("QueryMessageThread_")
+            );
 
-            this.adminBrokerExecutor =
-                Executors.newFixedThreadPool(this.brokerConfig.getAdminBrokerThreadPoolNums(), new ThreadFactoryImpl(
-                    "AdminBrokerThread_"));
+            this.adminBrokerExecutor = Executors.newFixedThreadPool(
+                this.brokerConfig.getAdminBrokerThreadPoolNums(),
+                new ThreadFactoryImpl("AdminBrokerThread_")
+            );
 
             this.clientManageExecutor = new ThreadPoolExecutor(
                 this.brokerConfig.getClientManageThreadPoolNums(),
@@ -307,7 +285,8 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.clientManagerThreadPoolQueue,
-                new ThreadFactoryImpl("ClientManageThread_"));
+                new ThreadFactoryImpl("ClientManageThread_")
+            );
 
             this.heartbeatExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getHeartbeatThreadPoolNums(),
@@ -315,7 +294,8 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.heartbeatThreadPoolQueue,
-                new ThreadFactoryImpl("HeartbeatThread_", true));
+                new ThreadFactoryImpl("HeartbeatThread_", true)
+            );
 
             this.endTransactionExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getEndTransactionThreadPoolNums(),
@@ -323,98 +303,109 @@ public class BrokerController {
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
                 this.endTransactionThreadPoolQueue,
-                new ThreadFactoryImpl("EndTransactionThread_"));
+                new ThreadFactoryImpl("EndTransactionThread_")
+            );
 
-            this.consumerManageExecutor =
-                Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
-                    "ConsumerManageThread_"));
+            this.consumerManageExecutor = Executors.newFixedThreadPool(
+                this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl("ConsumerManageThread_")
+            );
 
             this.registerProcessor();
-
-            final long initialDelay = UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis();
-            final long period = 1000 * 60 * 60 * 24;
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
+            /* 默认 24h一次 统计前一天 put message total, get message total */
+            this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         BrokerController.this.getBrokerStats().record();
                     } catch (Throwable e) {
                         log.error("schedule record error.", e);
                     }
-                }
-            }, initialDelay, period, TimeUnit.MILLISECONDS);
-
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
+                },
+                UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis(),
+                1000 * 60 * 60 * 24,
+                TimeUnit.MILLISECONDS
+            );
+            /* 默认 5s一次 持久化每个队列偏移量 */
+            this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         BrokerController.this.consumerOffsetManager.persist();
                     } catch (Throwable e) {
                         log.error("schedule persist consumerOffset error.", e);
                     }
-                }
-            }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
+                },
+                1000 * 10,
+                this.brokerConfig.getFlushConsumerOffsetInterval(),
+                TimeUnit.MILLISECONDS
+            );
 
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
+            this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         BrokerController.this.consumerFilterManager.persist();
                     } catch (Throwable e) {
                         log.error("schedule persist consumer filter error.", e);
                     }
-                }
-            }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+                },
+                1000 * 10,
+                1000 * 10,
+                TimeUnit.MILLISECONDS
+            );
 
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
+            this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         BrokerController.this.protectBroker();
                     } catch (Throwable e) {
                         log.error("protectBroker error.", e);
                     }
-                }
-            }, 3, 3, TimeUnit.MINUTES);
+                },
+                3,
+                3,
+                TimeUnit.MINUTES
+            );
 
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
+            this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         BrokerController.this.printWaterMark();
                     } catch (Throwable e) {
                         log.error("printWaterMark error.", e);
                     }
-                }
-            }, 10, 1, TimeUnit.SECONDS);
-
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-                @Override
-                public void run() {
+                },
+                10,
+                1,
+                TimeUnit.SECONDS
+            );
+            /* 默认 60s每次 打印已存储在 CommitLog 中但尚未分派到消费队列的字节数 */
+            this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         log.info("dispatch behind commit log {} bytes", BrokerController.this.getMessageStore().dispatchBehindBytes());
                     } catch (Throwable e) {
                         log.error("schedule dispatchBehindBytes error.", e);
                     }
-                }
-            }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+                },
+                1000 * 10,
+                1000 * 60,
+                TimeUnit.MILLISECONDS
+            );
 
             if (this.brokerConfig.getNamesrvAddr() != null) {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
             } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
-                this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-                    @Override
-                    public void run() {
+                this.scheduledExecutorService.scheduleAtFixedRate(
+                    () -> {
                         try {
                             BrokerController.this.brokerOuterAPI.fetchNameServerAddr();
                         } catch (Throwable e) {
                             log.error("ScheduledTask fetchNameServerAddr exception", e);
                         }
-                    }
-                }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+                    },
+                    1000 * 10,
+                    1000 * 60 * 2,
+                    TimeUnit.MILLISECONDS
+                );
             }
 
             if (!messageStoreConfig.isEnableDLegerCommitLog()) {
@@ -426,21 +417,24 @@ public class BrokerController {
                         this.updateMasterHAServerAddrPeriodically = true;
                     }
                 } else {
-                    this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                        @Override
-                        public void run() {
+                    /* 默认 60s每次 打印 slave 节点 CommitLog 落后多少 */
+                    this.scheduledExecutorService.scheduleAtFixedRate(
+                        () -> {
                             try {
                                 BrokerController.this.printMasterAndSlaveDiff();
                             } catch (Throwable e) {
                                 log.error("schedule printMasterAndSlaveDiff error.", e);
                             }
-                        }
-                    }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
+                        },
+                        1000 * 10,
+                        1000 * 60,
+                        TimeUnit.MILLISECONDS
+                    );
                 }
             }
 
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
-                // Register a listener to reload SslContext
+                /* Register a listener to reload SslContext */
                 try {
                     fileWatchService = new FileWatchService(
                         new String[] {
@@ -450,7 +444,6 @@ public class BrokerController {
                         },
                         new FileWatchService.Listener() {
                             boolean certChanged, keyChanged = false;
-
                             @Override
                             public void onChanged(String path) {
                                 if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
@@ -474,7 +467,8 @@ public class BrokerController {
                                 ((NettyRemotingServer) remotingServer).loadSslContext();
                                 ((NettyRemotingServer) fastRemotingServer).loadSslContext();
                             }
-                        });
+                        }
+                    );
                 } catch (Exception e) {
                     log.warn("FileWatchService created error, can't load the certificate dynamically");
                 }
@@ -517,10 +511,9 @@ public class BrokerController {
             final AccessValidator validator = accessValidator;
             accessValidatorMap.put(validator.getClass(),validator);
             this.registerServerRPCHook(new RPCHook() {
-
                 @Override
                 public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                    //Do not catch the exception
+                    /* Do not catch the exception */
                     validator.validate(validator.parse(request, remoteAddr));
                 }
 
@@ -533,7 +526,6 @@ public class BrokerController {
 
 
     private void initialRpcHooks() {
-
         List<RPCHook> rpcHooks = ServiceProvider.load(ServiceProvider.RPC_HOOK_ID, RPCHook.class);
         if (rpcHooks == null || rpcHooks.isEmpty()) {
             return;
@@ -544,81 +536,66 @@ public class BrokerController {
     }
 
     public void registerProcessor() {
-        /**
-         * SendMessageProcessor
-         */
+        /* SendMessageProcessor */
         SendMessageProcessor sendProcessor = new SendMessageProcessor(this);
         sendProcessor.registerSendMessageHook(sendMessageHookList);
         sendProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
-        /**
-         * PullMessageProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(CONSUMER_SEND_MSG_BACK, sendProcessor, this.sendMessageExecutor);
+
+        /* PullMessageProcessor */
+        this.remotingServer.registerProcessor(PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
         this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
-        /**
-         * ReplyMessageProcessor
-         */
+        /* ReplyMessageProcessor */
         ReplyMessageProcessor replyMessageProcessor = new ReplyMessageProcessor(this);
         replyMessageProcessor.registerSendMessageHook(sendMessageHookList);
 
-        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
+        this.remotingServer.registerProcessor(SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.remotingServer.registerProcessor(SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
+        this.fastRemotingServer.registerProcessor(SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.fastRemotingServer.registerProcessor(SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
 
-        /**
-         * QueryMessageProcessor
-         */
+        /* QueryMessageProcessor */
         NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
+        this.remotingServer.registerProcessor(QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
+        this.remotingServer.registerProcessor(VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
 
-        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
+        this.fastRemotingServer.registerProcessor(QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
+        this.fastRemotingServer.registerProcessor(VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
 
-        /**
-         * ClientManageProcessor
-         */
+        /* ClientManageProcessor */
         ClientManageProcessor clientProcessor = new ClientManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(HEART_BEAT, clientProcessor, this.heartbeatExecutor);
+        this.remotingServer.registerProcessor(UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
 
-        this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientProcessor, this.heartbeatExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(HEART_BEAT, clientProcessor, this.heartbeatExecutor);
+        this.fastRemotingServer.registerProcessor(UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(CHECK_CLIENT_CONFIG, clientProcessor, this.clientManageExecutor);
 
-        /**
-         * ConsumerManageProcessor
-         */
+        /* ConsumerManageProcessor */
         ConsumerManageProcessor consumerManageProcessor = new ConsumerManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
 
-        this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
 
-        /**
-         * EndTransactionProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
+        /* EndTransactionProcessor */
+        this.remotingServer.registerProcessor(END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
+        this.fastRemotingServer.registerProcessor(END_TRANSACTION, new EndTransactionProcessor(this), this.endTransactionExecutor);
 
-        /**
-         * Default
-         */
+        /* Default */
         AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
         this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
         this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
@@ -697,7 +674,7 @@ public class BrokerController {
     private void printMasterAndSlaveDiff() {
         long diff = this.messageStore.slaveFallBehindMuch();
 
-        // XXX: warn and notify me
+        /* XXX: warn and notify me */
         log.info("Slave fall behind master: {} bytes", diff);
     }
 
@@ -841,7 +818,8 @@ public class BrokerController {
             this.brokerConfig.getBrokerClusterName(),
             this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),
-            this.brokerConfig.getBrokerId());
+            this.brokerConfig.getBrokerId()
+        );
     }
 
     public String getBrokerAddr() {
@@ -886,18 +864,19 @@ public class BrokerController {
             handleSlaveSynchronize(messageStoreConfig.getBrokerRole());
             this.registerBrokerAll(true, false, true);
         }
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
+        /* Broker 定时发送心跳 */
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
                 } catch (Throwable e) {
                     log.error("registerBrokerAll Exception", e);
                 }
-            }
-        }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+            },
+            1000 * 10,
+            Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)),
+            TimeUnit.MILLISECONDS
+        );
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
@@ -906,17 +885,16 @@ public class BrokerController {
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.start();
         }
-
-
     }
 
     public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
         TopicConfig registerTopicConfig = topicConfig;
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-            registerTopicConfig =
-                new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
-                    this.brokerConfig.getBrokerPermission());
+            registerTopicConfig = new TopicConfig(
+                topicConfig.getTopicName(), topicConfig.getReadQueueNums(),
+                topicConfig.getWriteQueueNums(), this.brokerConfig.getBrokerPermission()
+            );
         }
 
         ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
@@ -928,26 +906,30 @@ public class BrokerController {
         doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
     }
 
-    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
+    public synchronized void registerBrokerAll(boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<String, TopicConfig>();
+            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
             for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
-                TopicConfig tmp =
-                    new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
-                        this.brokerConfig.getBrokerPermission());
+                TopicConfig tmp = new TopicConfig(
+                    topicConfig.getTopicName(), topicConfig.getReadQueueNums(),
+                    topicConfig.getWriteQueueNums(), this.brokerConfig.getBrokerPermission()
+                );
                 topicConfigTable.put(topicConfig.getTopicName(), tmp);
             }
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
-        if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
-            this.brokerConfig.getBrokerName(),
-            this.brokerConfig.getBrokerId(),
-            this.brokerConfig.getRegisterBrokerTimeoutMills())) {
+        if (forceRegister ||
+                needRegister(
+                    this.brokerConfig.getBrokerClusterName(),
+                    this.getBrokerAddr(), this.brokerConfig.getBrokerName(),
+                    this.brokerConfig.getBrokerId(),
+                    this.brokerConfig.getRegisterBrokerTimeoutMills()
+                )
+        ) {
             doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
         }
     }
@@ -986,8 +968,8 @@ public class BrokerController {
         final String brokerAddr,
         final String brokerName,
         final long brokerId,
-        final int timeoutMills) {
-
+        final int timeoutMills
+    ) {
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
         List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
         boolean needRegister = false;
@@ -997,6 +979,7 @@ public class BrokerController {
                 break;
             }
         }
+
         return needRegister;
     }
 
@@ -1127,7 +1110,7 @@ public class BrokerController {
 
     }
 
-    public Map<Class, AccessValidator> getAccessValidatorMap() {
+    public Map<Class<?>, AccessValidator> getAccessValidatorMap() {
         return accessValidatorMap;
     }
 
@@ -1137,19 +1120,21 @@ public class BrokerController {
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);
-            slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
+            slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(
+                () -> {
                     try {
                         BrokerController.this.slaveSynchronize.syncAll();
                     }
                     catch (Throwable e) {
                         log.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
-                }
-            }, 1000 * 3, 1000 * 10, TimeUnit.MILLISECONDS);
+                },
+                1000 * 3,
+                1000 * 10,
+                TimeUnit.MILLISECONDS
+            );
         } else {
-            //handle the slave synchronise
+            /* handle the slave synchronise */
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
@@ -1160,32 +1145,32 @@ public class BrokerController {
     public void changeToSlave(int brokerId) {
         log.info("Begin to change to slave brokerName={} brokerId={}", brokerConfig.getBrokerName(), brokerId);
 
-        //change the role
+        /* change the role */
         brokerConfig.setBrokerId(brokerId == 0 ? 1 : brokerId); //TO DO check
         messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
 
-        //handle the scheduled service
+        /* handle the scheduled service */
         try {
             this.messageStore.handleScheduleMessageService(BrokerRole.SLAVE);
         } catch (Throwable t) {
             log.error("[MONITOR] handleScheduleMessageService failed when changing to slave", t);
         }
 
-        //handle the transactional service
+        /* handle the transactional service */
         try {
             this.shutdownProcessorByHa();
         } catch (Throwable t) {
             log.error("[MONITOR] shutdownProcessorByHa failed when changing to slave", t);
         }
 
-        //handle the slave synchronise
+        /* handle the slave synchronise */
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
             this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
         } catch (Throwable ignored) {
-
         }
+
         log.info("Finish to change to slave brokerName={} brokerId={}", brokerConfig.getBrokerName(), brokerId);
     }
 
@@ -1197,32 +1182,32 @@ public class BrokerController {
         }
         log.info("Begin to change to master brokerName={}", brokerConfig.getBrokerName());
 
-        //handle the slave synchronise
+        /* handle the slave synchronise */
         handleSlaveSynchronize(role);
 
-        //handle the scheduled service
+        /* handle the scheduled service */
         try {
             this.messageStore.handleScheduleMessageService(role);
         } catch (Throwable t) {
             log.error("[MONITOR] handleScheduleMessageService failed when changing to master", t);
         }
 
-        //handle the transactional service
+        /* handle the transactional service */
         try {
             this.startProcessorByHa(BrokerRole.SYNC_MASTER);
         } catch (Throwable t) {
             log.error("[MONITOR] startProcessorByHa failed when changing to master", t);
         }
 
-        //if the operations above are totally successful, we change to master
+        /* if the operations above are totally successful, we change to master */
         brokerConfig.setBrokerId(0); //TO DO check
         messageStoreConfig.setBrokerRole(role);
 
         try {
             this.registerBrokerAll(true, true, brokerConfig.isForceRegister());
         } catch (Throwable ignored) {
-
         }
+
         log.info("Finish to change to master brokerName={}", brokerConfig.getBrokerName());
     }
 
@@ -1243,4 +1228,5 @@ public class BrokerController {
     public ExecutorService getSendMessageExecutor() {
         return sendMessageExecutor;
     }
+
 }

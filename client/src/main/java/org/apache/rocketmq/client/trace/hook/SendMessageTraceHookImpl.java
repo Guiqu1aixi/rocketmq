@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.client.trace.hook;
 
-import java.util.ArrayList;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceBean;
-import org.apache.rocketmq.client.trace.TraceContext;
-import org.apache.rocketmq.client.trace.TraceDispatcher;
-import org.apache.rocketmq.client.trace.TraceType;
+import org.apache.rocketmq.client.trace.*;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
+
+import java.util.ArrayList;
 
 public class SendMessageTraceHookImpl implements SendMessageHook {
 

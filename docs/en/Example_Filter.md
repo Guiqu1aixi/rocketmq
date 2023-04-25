@@ -3,7 +3,7 @@
 
 In most cases, tag is a simple and useful design to select messages you want. For example:
 
-```java
+```
 DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_EXAMPLE");
 consumer.subscribe("TOPIC", "TAGA || TAGB || TAGC");
 ```
@@ -71,7 +71,7 @@ producer.shutdown();
 Use `MessageSelector.bySql` to select messages through SQL when consuming.
 
 
-```java
+```
 DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
 // only subsribe messages have property a, also a >=0 and a <= 3
 consumer.subscribe("TopicTest", MessageSelector.bySql("a between 0 and 3"));

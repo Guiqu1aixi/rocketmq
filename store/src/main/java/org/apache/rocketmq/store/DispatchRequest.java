@@ -19,37 +19,92 @@ package org.apache.rocketmq.store;
 import java.util.Map;
 
 public class DispatchRequest {
+
+    /**
+     * 消息主题
+     */
     private final String topic;
+
+    /**
+     * 消息队列Id
+     */
     private final int queueId;
+
+    /**
+     * 消息物理偏移量
+     */
     private final long commitLogOffset;
+
+    /**
+     * 消息长度
+     */
     private int msgSize;
+
+    /**
+     * 消息过滤 tag HashCode
+     */
     private final long tagsCode;
+
+    /**
+     * 消息存储时间戳
+     */
     private final long storeTimestamp;
+
+    /**
+     * 消息队列偏移量
+     */
     private final long consumeQueueOffset;
+
+    /**
+     * 消息索引Key,多个用空格隔开
+     */
     private final String keys;
+
+    /**
+     * 是否解析到完整消息
+     */
     private final boolean success;
+
+    /**
+     * 消息唯一键
+     */
     private final String uniqKey;
 
+    /**
+     * 消息系统标记
+     */
     private final int sysFlag;
+
+    /**
+     * 消息预处理事务偏移量
+     */
     private final long preparedTransactionOffset;
+
+    /**
+     * 消息属性
+     */
     private final Map<String, String> propertiesMap;
+
+    /**
+     * 位图
+     */
     private byte[] bitMap;
 
     private int bufferSize = -1;//the buffer size maybe larger than the msg size if the message is wrapped by something
 
     public DispatchRequest(
-        final String topic,
-        final int queueId,
-        final long commitLogOffset,
-        final int msgSize,
-        final long tagsCode,
-        final long storeTimestamp,
-        final long consumeQueueOffset,
-        final String keys,
-        final String uniqKey,
-        final int sysFlag,
-        final long preparedTransactionOffset,
-        final Map<String, String> propertiesMap
+        String topic,
+        int queueId,
+        long commitLogOffset,
+        int msgSize,
+        long tagsCode,
+        long storeTimestamp,
+        long consumeQueueOffset,
+        String keys,
+        String uniqKey,
+        int sysFlag,
+        long preparedTransactionOffset,
+        Map<String, String> propertiesMap
     ) {
         this.topic = topic;
         this.queueId = queueId;
@@ -170,4 +225,5 @@ public class DispatchRequest {
     public void setBufferSize(int bufferSize) {
         this.bufferSize = bufferSize;
     }
+    
 }

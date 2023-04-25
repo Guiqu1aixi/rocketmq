@@ -20,6 +20,7 @@ package org.apache.rocketmq.common.protocol.body;
 import org.apache.rocketmq.common.UtilAll;
 
 public class ProcessQueueInfo {
+
     private long commitOffset;
 
     private long cachedMsgMinOffset;
@@ -163,4 +164,5 @@ public class ProcessQueueInfo {
             + droped + ", lastPullTimestamp=" + UtilAll.timeMillisToHumanString(lastPullTimestamp)
             + ", lastConsumeTimestamp=" + UtilAll.timeMillisToHumanString(lastConsumeTimestamp) + "]";
     }
+
 }

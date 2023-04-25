@@ -62,7 +62,6 @@ public class SelectorParser implements SelectorParserConstants {
             //            }
             ComparisonExpression.CONVERT_STRING_EXPRESSIONS.set(true);
             try {
-
                 BooleanExpression e = new SelectorParser(sql).parse();
                 PARSE_CACHE.put(sql, e);
                 return e;

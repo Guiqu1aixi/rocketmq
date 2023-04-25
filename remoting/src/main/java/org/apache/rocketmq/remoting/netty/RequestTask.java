@@ -21,13 +21,14 @@ import io.netty.channel.Channel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RequestTask implements Runnable {
+
     private final Runnable runnable;
     private final long createTimestamp = System.currentTimeMillis();
     private final Channel channel;
     private final RemotingCommand request;
     private boolean stopRun = false;
 
-    public RequestTask(final Runnable runnable, final Channel channel, final RemotingCommand request) {
+    public RequestTask(Runnable runnable, Channel channel, RemotingCommand request) {
         this.runnable = runnable;
         this.channel = channel;
         this.request = request;
@@ -85,4 +86,5 @@ public class RequestTask implements Runnable {
         response.setOpaque(request.getOpaque());
         this.channel.writeAndFlush(response);
     }
+
 }

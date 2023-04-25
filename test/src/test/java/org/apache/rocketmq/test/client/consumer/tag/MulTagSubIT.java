@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.client.consumer.tag;
 
-import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -31,6 +30,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
 
 import static com.google.common.truth.Truth.assertThat;
 

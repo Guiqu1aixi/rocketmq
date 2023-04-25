@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 
 public interface MessageFilter {
+    
     /**
      * match by tags code or filter bit map which is calculated when message received
      * and stored in consume queue ext.
@@ -27,8 +28,8 @@ public interface MessageFilter {
      * @param tagsCode tagsCode
      * @param cqExtUnit extend unit of consume queue
      */
-    boolean isMatchedByConsumeQueue(final Long tagsCode,
-        final ConsumeQueueExt.CqExtUnit cqExtUnit);
+    boolean isMatchedByConsumeQueue(Long tagsCode,
+        ConsumeQueueExt.CqExtUnit cqExtUnit);
 
     /**
      * match by message content which are stored in commit log.
@@ -38,6 +39,7 @@ public interface MessageFilter {
      * @param msgBuffer message buffer in commit log, may be null if not invoked in store.
      * @param properties message properties, should decode from buffer if null by yourself.
      */
-    boolean isMatchedByCommitLog(final ByteBuffer msgBuffer,
-        final Map<String, String> properties);
+    boolean isMatchedByCommitLog(ByteBuffer msgBuffer,
+        Map<String, String> properties);
+    
 }

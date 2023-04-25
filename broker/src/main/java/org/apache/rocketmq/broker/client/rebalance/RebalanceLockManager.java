@@ -16,27 +16,32 @@
  */
 package org.apache.rocketmq.broker.client.rebalance;
 
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.message.MessageQueue;
 
 public class RebalanceLockManager {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.REBALANCE_LOCK_LOGGER_NAME);
-    private final static long REBALANCE_LOCK_MAX_LIVE_TIME = Long.parseLong(System.getProperty(
-        "rocketmq.broker.rebalance.lockMaxLiveTime", "60000"));
+
+    private final static long REBALANCE_LOCK_MAX_LIVE_TIME = Long.parseLong(
+        System.getProperty("rocketmq.broker.rebalance.lockMaxLiveTime", "60000")
+    );
+
     private final Lock lock = new ReentrantLock();
-    private final ConcurrentMap<String/* group */, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable =
-        new ConcurrentHashMap<String, ConcurrentHashMap<MessageQueue, LockEntry>>(1024);
+    /* ConcurrentMap<Group Name, ConcurrentHashMap<MessageQueue, LockEntry>> */
+    private final ConcurrentMap<String, ConcurrentHashMap<MessageQueue, LockEntry>> mqLockTable =
+        new ConcurrentHashMap<>(1024);
 
-    public boolean tryLock(final String group, final MessageQueue mq, final String clientId) {
-
+    public boolean tryLock(String group, MessageQueue mq, String clientId) {
         if (!this.isLocked(group, mq, clientId)) {
             try {
                 this.lock.lockInterruptibly();
@@ -55,7 +60,8 @@ public class RebalanceLockManager {
                         log.info("tryLock, message queue not locked, I got it. Group: {} NewClientId: {} {}",
                             group,
                             clientId,
-                            mq);
+                            mq
+                        );
                     }
 
                     if (lockEntry.isLocked(clientId)) {
@@ -70,19 +76,15 @@ public class RebalanceLockManager {
                         lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                         log.warn(
                             "tryLock, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}",
-                            group,
-                            oldClientId,
-                            clientId,
-                            mq);
+                            group, oldClientId, clientId, mq
+                        );
                         return true;
                     }
 
                     log.warn(
                         "tryLock, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}",
-                        group,
-                        oldClientId,
-                        clientId,
-                        mq);
+                        group, oldClientId, clientId, mq
+                    );
                     return false;
                 } finally {
                     this.lock.unlock();
@@ -90,14 +92,12 @@ public class RebalanceLockManager {
             } catch (InterruptedException e) {
                 log.error("putMessage exception", e);
             }
-        } else {
-
         }
 
         return true;
     }
 
-    private boolean isLocked(final String group, final MessageQueue mq, final String clientId) {
+    private boolean isLocked(String group, MessageQueue mq, String clientId) {
         ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.get(group);
         if (groupValue != null) {
             LockEntry lockEntry = groupValue.get(mq);
@@ -114,10 +114,9 @@ public class RebalanceLockManager {
         return false;
     }
 
-    public Set<MessageQueue> tryLockBatch(final String group, final Set<MessageQueue> mqs,
-        final String clientId) {
-        Set<MessageQueue> lockedMqs = new HashSet<MessageQueue>(mqs.size());
-        Set<MessageQueue> notLockedMqs = new HashSet<MessageQueue>(mqs.size());
+    public Set<MessageQueue> tryLockBatch(String group, Set<MessageQueue> mqs, String clientId) {
+        Set<MessageQueue> lockedMqs = new HashSet<>(mqs.size());
+        Set<MessageQueue> notLockedMqs = new HashSet<>(mqs.size());
 
         for (MessageQueue mq : mqs) {
             if (this.isLocked(group, mq, clientId)) {
@@ -145,9 +144,8 @@ public class RebalanceLockManager {
                             groupValue.put(mq, lockEntry);
                             log.info(
                                 "tryLockBatch, message queue not locked, I got it. Group: {} NewClientId: {} {}",
-                                group,
-                                clientId,
-                                mq);
+                                group, clientId, mq
+                            );
                         }
 
                         if (lockEntry.isLocked(clientId)) {
@@ -163,20 +161,16 @@ public class RebalanceLockManager {
                             lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             log.warn(
                                 "tryLockBatch, message queue lock expired, I got it. Group: {} OldClientId: {} NewClientId: {} {}",
-                                group,
-                                oldClientId,
-                                clientId,
-                                mq);
+                                group, oldClientId, clientId, mq
+                            );
                             lockedMqs.add(mq);
                             continue;
                         }
 
                         log.warn(
                             "tryLockBatch, message queue locked by other client. Group: {} OtherClientId: {} NewClientId: {} {}",
-                            group,
-                            oldClientId,
-                            clientId,
-                            mq);
+                            group, oldClientId, clientId, mq
+                        );
                     }
                 } finally {
                     this.lock.unlock();
@@ -203,25 +197,26 @@ public class RebalanceLockManager {
                                 log.info("unlockBatch, Group: {} {} {}",
                                     group,
                                     mq,
-                                    clientId);
+                                    clientId
+                                );
                             } else {
                                 log.warn("unlockBatch, but mq locked by other client: {}, Group: {} {} {}",
                                     lockEntry.getClientId(),
                                     group,
                                     mq,
-                                    clientId);
+                                    clientId
+                                );
                             }
                         } else {
                             log.warn("unlockBatch, but mq not locked, Group: {} {} {}",
                                 group,
                                 mq,
-                                clientId);
+                                clientId
+                            );
                         }
                     }
                 } else {
-                    log.warn("unlockBatch, group not exist, Group: {} {}",
-                        group,
-                        clientId);
+                    log.warn("unlockBatch, group not exist, Group: {} {}", group, clientId);
                 }
             } finally {
                 this.lock.unlock();
@@ -233,6 +228,7 @@ public class RebalanceLockManager {
 
     static class LockEntry {
         private String clientId;
+
         private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
         public String getClientId() {
@@ -257,10 +253,8 @@ public class RebalanceLockManager {
         }
 
         public boolean isExpired() {
-            boolean expired =
-                (System.currentTimeMillis() - this.lastUpdateTimestamp) > REBALANCE_LOCK_MAX_LIVE_TIME;
-
-            return expired;
+            return (System.currentTimeMillis() - this.lastUpdateTimestamp)
+                    > REBALANCE_LOCK_MAX_LIVE_TIME;
         }
     }
 }

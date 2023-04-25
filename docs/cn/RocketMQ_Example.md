@@ -392,7 +392,6 @@ public class ConsumerInOrder {
        consumer.subscribe("TopicTest", "TagA || TagC || TagD");
 
        consumer.registerMessageListener(new MessageListenerOrderly() {
-
            Random random = new Random();
 
            @Override

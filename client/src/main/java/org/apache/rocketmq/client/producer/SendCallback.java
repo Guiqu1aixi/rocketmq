@@ -17,7 +17,9 @@
 package org.apache.rocketmq.client.producer;
 
 public interface SendCallback {
-    void onSuccess(final SendResult sendResult);
 
-    void onException(final Throwable e);
+    void onSuccess(SendResult sendResult);
+
+    void onException(Throwable e);
+
 }

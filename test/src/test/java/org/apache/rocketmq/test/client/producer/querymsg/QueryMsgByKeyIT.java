@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.client.producer.querymsg;
 
-import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -28,6 +27,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
 
 import static com.google.common.truth.Truth.assertThat;
 

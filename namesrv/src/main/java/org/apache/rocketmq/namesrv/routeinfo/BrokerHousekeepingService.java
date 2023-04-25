@@ -24,6 +24,7 @@ import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 
 public class BrokerHousekeepingService implements ChannelEventListener {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final NamesrvController namesrvController;
 
@@ -49,4 +50,5 @@ public class BrokerHousekeepingService implements ChannelEventListener {
     public void onChannelIdle(String remoteAddr, Channel channel) {
         this.namesrvController.getRouteInfoManager().onChannelDestroy(remoteAddr, channel);
     }
+
 }

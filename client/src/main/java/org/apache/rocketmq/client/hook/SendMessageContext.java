@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.client.hook;
 
-import java.util.Map;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
+
+import java.util.Map;
 
 public class SendMessageContext {
     private String producerGroup;

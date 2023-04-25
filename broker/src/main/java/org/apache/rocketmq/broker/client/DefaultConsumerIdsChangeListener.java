@@ -17,25 +17,31 @@
 package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
-
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * 负责Consumer发生变化时的监听
+ */
 public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListener {
+
     private final BrokerController brokerController;
 
     public DefaultConsumerIdsChangeListener(BrokerController brokerController) {
         this.brokerController = brokerController;
     }
 
+    @SuppressWarnings("all")
     @Override
     public void handle(ConsumerGroupEvent event, String group, Object... args) {
-        if (event == null) {
+        if (Objects.isNull(event)) {
             return;
         }
+
         switch (event) {
             case CHANGE:
                 if (args == null || args.length < 1) {
@@ -62,4 +68,5 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 throw new RuntimeException("Unknown event " + event);
         }
     }
+
 }

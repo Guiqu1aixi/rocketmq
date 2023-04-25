@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.test.util;
 
-import java.util.HashMap;
-import java.util.Set;
-import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
@@ -28,7 +25,12 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
+import java.util.HashMap;
+import java.util.Set;
+import java.util.UUID;
+
 public class MQAdmin {
+
     private static Logger log = Logger.getLogger(MQAdmin.class);
 
     public static boolean createTopic(String nameSrvAddr, String clusterName, String topic,
@@ -83,8 +85,7 @@ public class MQAdmin {
         config.setGroupName(consumerId);
         try {
             mqAdminExt.start();
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
-                clusterName);
+            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt, clusterName);
             for (String addr : masterSet) {
                 try {
                     mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
@@ -143,8 +144,7 @@ public class MQAdmin {
         config.setGroupName(consumerId);
         try {
             mqAdminExt.start();
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
-                clusterName);
+            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt, clusterName);
             for (String addr : masterSet) {
                 try {
 

@@ -20,13 +20,14 @@ import java.net.URL;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public class FilterAPI {
-    public static URL classFile(final String className) {
-        final String javaSource = simpleClassName(className) + ".java";
+    
+    public static URL classFile(String className) {
+        String javaSource = simpleClassName(className) + ".java";
         URL url = FilterAPI.class.getClassLoader().getResource(javaSource);
         return url;
     }
 
-    public static String simpleClassName(final String className) {
+    public static String simpleClassName(String className) {
         String simple = className;
         int index = className.lastIndexOf(".");
         if (index >= 0) {
@@ -36,7 +37,7 @@ public class FilterAPI {
         return simple;
     }
 
-    public static SubscriptionData buildSubscriptionData(final String consumerGroup, String topic,
+    public static SubscriptionData buildSubscriptionData(String consumerGroup, String topic,
         String subString) throws Exception {
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
@@ -64,8 +65,8 @@ public class FilterAPI {
         return subscriptionData;
     }
 
-    public static SubscriptionData build(final String topic, final String subString,
-        final String type) throws Exception {
+    public static SubscriptionData build(String topic, String subString,
+        String type) throws Exception {
         if (ExpressionType.TAG.equals(type) || type == null) {
             return buildSubscriptionData(null, topic, subString);
         }
@@ -81,4 +82,5 @@ public class FilterAPI {
 
         return subscriptionData;
     }
+    
 }

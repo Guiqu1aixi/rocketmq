@@ -50,14 +50,11 @@ public class StatsItemSetTest {
         final String rtStatKey = "rtTest";
         final StatsItemSet statsItemSet = new StatsItemSet(tpsStatKey, scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10; i++) {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    statsItemSet.addValue(tpsStatKey, 2, 1);
-                    statsItemSet.addRTValue(rtStatKey, 2, 1);
-                }
+            executor.submit(() -> {
+                statsItemSet.addValue(tpsStatKey, 2, 1);
+                statsItemSet.addRTValue(rtStatKey, 2, 1);
             });
         }
         while (true) {
@@ -98,14 +95,9 @@ public class StatsItemSetTest {
     private AtomicLong test_unit() throws InterruptedException {
         final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10; i++) {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    statsItemSet.addValue("topicTest", 2, 1);
-                }
-            });
+            executor.submit(() -> statsItemSet.addValue("topicTest", 2, 1));
         }
         while (true) {
             if (executor.getCompletedTaskCount() == 10) {
@@ -119,14 +111,9 @@ public class StatsItemSetTest {
     private AtomicLong test_unit_moment() throws InterruptedException {
         final MomentStatsItemSet statsItemSet = new MomentStatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10; i++) {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    statsItemSet.setValue("test", 10);
-                }
-            });
+            executor.submit(() -> statsItemSet.setValue("test", 10));
         }
         while (true) {
             if (executor.getCompletedTaskCount() == 10) {
@@ -141,4 +128,5 @@ public class StatsItemSetTest {
     public void shutdown() {
         executor.shutdown();
     }
+
 }

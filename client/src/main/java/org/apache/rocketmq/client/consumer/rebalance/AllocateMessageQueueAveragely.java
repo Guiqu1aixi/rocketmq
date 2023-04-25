@@ -16,22 +16,32 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.InternalLogger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
+ * 平均算法 默认
  * Average Hashing queue algorithm
  */
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
+
     private final InternalLogger log = ClientLogger.getLog();
 
+    /**
+     *
+     * @param consumerGroup 当前消费组
+     * @param currentCID    当前 ConsumerId
+     * @param mqAll         该 topic 下的全部队列
+     * @param cidAll        当前消费组下活跃的消费端集合
+     */
     @Override
-    public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-        List<String> cidAll) {
+    public List<MessageQueue> allocate(String consumerGroup, String currentCID,
+        List<MessageQueue> mqAll, List<String> cidAll) {
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
@@ -42,12 +52,17 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
             throw new IllegalArgumentException("cidAll is null or cidAll empty");
         }
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
+
+        /**
+         * 当前消费者不在"当前消费组下活跃的消费端集合"中
+         */
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
                 consumerGroup,
                 currentCID,
-                cidAll);
+                cidAll
+            );
             return result;
         }
 
@@ -68,4 +83,5 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
     public String getName() {
         return "AVG";
     }
+
 }

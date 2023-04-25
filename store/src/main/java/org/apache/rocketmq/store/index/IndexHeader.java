@@ -21,20 +21,72 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IndexHeader {
+
+    /**
+     * IndexFile 文件头的长度
+     */
     public static final int INDEX_HEADER_SIZE = 40;
+
+    /**
+     * 该索引文件所含消息起始存储时间在ByteBuffer中的偏移量
+     */
     private static int beginTimestampIndex = 0;
+
+    /**
+     * 该索引文件所含消息结尾存储时间在ByteBuffer中的偏移量
+     */
     private static int endTimestampIndex = 8;
+
+    /**
+     * 该索引文件所含消息最小物理偏移量在ByteBuffer中的偏移量
+     */
     private static int beginPhyoffsetIndex = 16;
+
+    /**
+     * 该索引文件所含消息最大物理偏移量在ByteBuffer中的偏移量
+     */
     private static int endPhyoffsetIndex = 24;
+
+    /**
+     * HashSlot 个数在 ByteBuffer 中的偏移量
+     */
     private static int hashSlotcountIndex = 32;
+
+    /**
+     * Index 条目列表已使用个数在 ByteBuffer 中的偏移量
+     */
     private static int indexCountIndex = 36;
+
     private final ByteBuffer byteBuffer;
+
+    /**
+     * 该索引文件所含消息结尾存储时间
+     */
     private AtomicLong beginTimestamp = new AtomicLong(0);
+
+    /**
+     * 该索引文件所含消息结尾存储时间
+     */
     private AtomicLong endTimestamp = new AtomicLong(0);
+
+    /**
+     * 该索引文件所含消息最小物理偏移量
+     */
     private AtomicLong beginPhyOffset = new AtomicLong(0);
+
+    /**
+     * 该索引文件所含消息最大物理偏移量
+     */
     private AtomicLong endPhyOffset = new AtomicLong(0);
+
+    /**
+     * HashSlot 个数
+     */
     private AtomicInteger hashSlotCount = new AtomicInteger(0);
 
+    /**
+     * Index 条目列表已使用个数
+     */
     private AtomicInteger indexCount = new AtomicInteger(1);
 
     public IndexHeader(final ByteBuffer byteBuffer) {
@@ -117,4 +169,5 @@ public class IndexHeader {
         int value = this.indexCount.incrementAndGet();
         this.byteBuffer.putInt(indexCountIndex, value);
     }
+
 }

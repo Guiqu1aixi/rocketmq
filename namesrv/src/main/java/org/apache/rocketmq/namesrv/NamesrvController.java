@@ -40,20 +40,22 @@ import org.apache.rocketmq.srvutil.FileWatchService;
 
 
 public class NamesrvController {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     private final NamesrvConfig namesrvConfig;
 
     private final NettyServerConfig nettyServerConfig;
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "NSScheduledThread"));
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryImpl("NSScheduledThread")
+    );
     private final KVConfigManager kvConfigManager;
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;
 
-    private BrokerHousekeepingService brokerHousekeepingService;
+    private final BrokerHousekeepingService brokerHousekeepingService;
 
     private ExecutorService remotingExecutor;
 
@@ -68,37 +70,40 @@ public class NamesrvController {
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.configuration = new Configuration(
             log,
-            this.namesrvConfig, this.nettyServerConfig
+            this.namesrvConfig,
+            this.nettyServerConfig
         );
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
+    /**
+     * 根据一系列启动属性创建 NamesrvController 实例，
+     * 见名知意，这里就是 NameServer 核心控制器
+     */
     public boolean initialize() {
-
+        /* 加载 K V配置 */
         this.kvConfigManager.load();
-
+        /* 创建 NettyServer 网络处理对象 */
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
-        this.remotingExecutor =
-            Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
+        this.remotingExecutor = Executors.newFixedThreadPool(
+            nettyServerConfig.getServerWorkerThreads(),
+            new ThreadFactoryImpl("RemotingExecutorThread_")
+        );
 
         this.registerProcessor();
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-                NamesrvController.this.routeInfoManager.scanNotActiveBroker();
-            }
-        }, 5, 10, TimeUnit.SECONDS);
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-                NamesrvController.this.kvConfigManager.printAllPeriodically();
-            }
-        }, 1, 10, TimeUnit.MINUTES);
+        /**
+         * 开启两个定时任务，Rocket中将他们统称为 💗心跳检测
+         * 1) 每隔 10s 扫描一次 Broker,移除不活跃状态的Broker
+         * 2) 每隔 10min 打印一次 K-V 配置
+         */
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            NamesrvController.this.routeInfoManager::scanNotActiveBroker, 5, 10, TimeUnit.SECONDS
+        );
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            NamesrvController.this.kvConfigManager::printAllPeriodically, 1, 10, TimeUnit.MINUTES
+        );
 
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
@@ -143,16 +148,22 @@ public class NamesrvController {
 
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
-
-            this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
-                this.remotingExecutor);
+            this.remotingServer.registerDefaultProcessor(
+                new ClusterTestRequestProcessor(
+                    this,
+                    namesrvConfig.getProductEnvName()
+                ),
+                this.remotingExecutor
+            );
         } else {
-
-            this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
+            this.remotingServer.registerDefaultProcessor(
+                new DefaultRequestProcessor(this),
+                this.remotingExecutor
+            );
         }
     }
 
-    public void start() throws Exception {
+    public void start() {
         this.remotingServer.start();
 
         if (this.fileWatchService != null) {
@@ -197,4 +208,5 @@ public class NamesrvController {
     public Configuration getConfiguration() {
         return configuration;
     }
+
 }

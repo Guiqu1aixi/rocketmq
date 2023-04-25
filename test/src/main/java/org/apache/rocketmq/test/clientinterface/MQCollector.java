@@ -17,18 +17,20 @@
 
 package org.apache.rocketmq.test.clientinterface;
 
+import org.apache.rocketmq.test.util.RandomUtil;
+import org.apache.rocketmq.test.util.data.collect.DataCollector;
+import org.apache.rocketmq.test.util.data.collect.DataCollectorManager;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.test.util.RandomUtil;
-import org.apache.rocketmq.test.util.data.collect.DataCollector;
-import org.apache.rocketmq.test.util.data.collect.DataCollectorManager;
 
 public abstract class MQCollector {
-    protected DataCollector msgBodys = null;
-    protected DataCollector originMsgs = null;
+
+    protected DataCollector msgBodys;
+    protected DataCollector originMsgs;
     protected DataCollector errorMsgs = null;
     protected Map<Object, Object> originMsgIndex = null;
     protected Collection<Object> msgBodysCopy = null;
@@ -42,7 +44,7 @@ public abstract class MQCollector {
             .fetchListDataCollector(RandomUtil.getStringByUUID());
         errorMsgs = DataCollectorManager.getInstance()
             .fetchListDataCollector(RandomUtil.getStringByUUID());
-        originMsgIndex = new ConcurrentHashMap<Object, Object>();
+        originMsgIndex = new ConcurrentHashMap<>();
         msgRTs = DataCollectorManager.getInstance()
             .fetchListDataCollector(RandomUtil.getStringByUUID());
     }
@@ -85,7 +87,7 @@ public abstract class MQCollector {
     }
 
     public Collection<Object> getMsgBodysCopy() {
-        msgBodysCopy = new ArrayList<Object>();
+        msgBodysCopy = new ArrayList<>();
         msgBodysCopy.addAll(msgBodys.getAllData());
         return msgBodysCopy;
     }
@@ -113,6 +115,6 @@ public abstract class MQCollector {
         originMsgs.lockIncrement();
         errorMsgs.lockIncrement();
         msgRTs.lockIncrement();
-
     }
+
 }

@@ -17,18 +17,20 @@
 
 package org.apache.rocketmq.test.listener.rmq.order;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class RMQOrderListener extends AbstractListener implements MessageListenerOrderly {
+
     private Map<String/* brokerId_brokerIp */, Collection<Object>> msgs = new ConcurrentHashMap<String, Collection<Object>>();
 
     public RMQOrderListener() {
@@ -37,10 +39,6 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
 
     public RMQOrderListener(String listnerName) {
         super(listnerName);
-    }
-
-    public RMQOrderListener(String originMsgCollector, String msgBodyCollector) {
-        super(originMsgCollector, msgBodyCollector);
     }
 
     public Collection<Collection<Object>> getMsgs() {
@@ -83,4 +81,5 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
 
         return ConsumeOrderlyStatus.SUCCESS;
     }
+
 }

@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class QueryConsumerOffsetRequestHeader implements CommandCustomHeader {
+
     @CFNotNull
     private String consumerGroup;
     @CFNotNull

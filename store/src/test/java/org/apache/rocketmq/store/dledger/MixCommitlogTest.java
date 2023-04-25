@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import java.util.UUID;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.UUID;
 
 public class MixCommitlogTest extends MessageStoreTestBase {
 

@@ -33,9 +33,9 @@ public class ConsumeStatsListTest {
     @Test
     public void testFromJson() {
         ConsumeStats consumeStats = new ConsumeStats();
-        ArrayList<ConsumeStats> consumeStatsListValue = new ArrayList<ConsumeStats>();
+        ArrayList<ConsumeStats> consumeStatsListValue = new ArrayList<>();
         consumeStatsListValue.add(consumeStats);
-        HashMap<String, List<ConsumeStats>> map = new HashMap<String, List<ConsumeStats>>();
+        HashMap<String, List<ConsumeStats>> map = new HashMap<>();
         map.put("subscriptionGroupName", consumeStatsListValue);
         List<Map<String/*subscriptionGroupName*/, List<ConsumeStats>>> consumeStatsListValue2 = new ArrayList<Map<String, List<ConsumeStats>>>();
         consumeStatsListValue2.add(map);

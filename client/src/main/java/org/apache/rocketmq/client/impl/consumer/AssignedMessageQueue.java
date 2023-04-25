@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import org.apache.rocketmq.common.message.MessageQueue;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.common.message.MessageQueue;
 
 public class AssignedMessageQueue {
 
@@ -30,7 +31,7 @@ public class AssignedMessageQueue {
     private RebalanceImpl rebalanceImpl;
 
     public AssignedMessageQueue() {
-        assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueState>();
+        assignedMessageQueueState = new ConcurrentHashMap<>();
     }
 
     public void setRebalanceImpl(RebalanceImpl rebalanceImpl) {
@@ -181,7 +182,7 @@ public class AssignedMessageQueue {
         return this.assignedMessageQueueState.keySet();
     }
 
-    private class MessageQueueState {
+    private static class MessageQueueState {
         private MessageQueue messageQueue;
         private ProcessQueue processQueue;
         private volatile boolean paused = false;

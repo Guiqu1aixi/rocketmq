@@ -20,12 +20,12 @@
  */
 package org.apache.rocketmq.store.index;
 
+import org.apache.rocketmq.common.UtilAll;
+import org.junit.Test;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.rocketmq.common.UtilAll;
-import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -39,11 +39,12 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ClientManageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
 
@@ -72,6 +73,11 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         return false;
     }
 
+    /**
+     * 这个心跳处理除了健康检查外
+     * 居然还监测Consumer是否发生变化，若变化则下发至其他同Group中的Consumer
+     * ⚠️: this.brokerController.getConsumerManager().registerConsumer()
+     */
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
@@ -83,9 +89,8 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         );
 
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
-            SubscriptionGroupConfig subscriptionGroupConfig =
-                this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(
-                    data.getGroupName());
+            SubscriptionGroupConfig subscriptionGroupConfig = this.brokerController
+                .getSubscriptionGroupManager().findSubscriptionGroupConfig(data.getGroupName());
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null != subscriptionGroupConfig) {
                 isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
@@ -97,7 +102,8 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
                 this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
                     newTopic,
                     subscriptionGroupConfig.getRetryQueueNums(),
-                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+                    PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag
+                );
             }
 
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
@@ -119,8 +125,8 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         }
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
-            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                clientChannelInfo);
+            this.brokerController.getProducerManager()
+                .registerProducer(data.getGroupName(), clientChannelInfo);
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -129,29 +135,30 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
 
     public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-        final RemotingCommand response =
+        RemotingCommand response =
             RemotingCommand.createResponseCommand(UnregisterClientResponseHeader.class);
-        final UnregisterClientRequestHeader requestHeader =
-            (UnregisterClientRequestHeader) request
-                .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+        UnregisterClientRequestHeader requestHeader = (UnregisterClientRequestHeader) request
+            .decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
 
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             ctx.channel(),
             requestHeader.getClientID(),
             request.getLanguage(),
-            request.getVersion());
+            request.getVersion()
+        );
+
         {
-            final String group = requestHeader.getProducerGroup();
+            String group = requestHeader.getProducerGroup();
             if (group != null) {
                 this.brokerController.getProducerManager().unregisterProducer(group, clientChannelInfo);
             }
         }
 
         {
-            final String group = requestHeader.getConsumerGroup();
+            String group = requestHeader.getConsumerGroup();
             if (group != null) {
-                SubscriptionGroupConfig subscriptionGroupConfig =
-                    this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+                SubscriptionGroupConfig subscriptionGroupConfig = this.brokerController
+                    .getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
                 boolean isNotifyConsumerIdsChangedEnable = true;
                 if (null != subscriptionGroupConfig) {
                     isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
@@ -165,12 +172,11 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         return response;
     }
 
-    public RemotingCommand checkClientConfig(ChannelHandlerContext ctx, RemotingCommand request)
-        throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+    public RemotingCommand checkClientConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        CheckClientRequestBody requestBody = CheckClientRequestBody.decode(request.getBody(),
-            CheckClientRequestBody.class);
+        CheckClientRequestBody requestBody = CheckClientRequestBody
+            .decode(request.getBody(), CheckClientRequestBody.class);
 
         if (requestBody != null && requestBody.getSubscriptionData() != null) {
             SubscriptionData subscriptionData = requestBody.getSubscriptionData();
@@ -191,7 +197,8 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
                 FilterFactory.INSTANCE.get(subscriptionData.getExpressionType()).compile(subscriptionData.getSubString());
             } catch (Exception e) {
                 log.warn("Client {}@{} filter message, but failed to compile expression! sub={}, error={}",
-                    requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e.getMessage());
+                    requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e.getMessage()
+                );
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark(e.getMessage());
                 return response;
@@ -202,4 +209,5 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         response.setRemark(null);
         return response;
     }
+
 }

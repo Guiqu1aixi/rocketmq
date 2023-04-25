@@ -22,6 +22,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.MessageFilter;
 
 public class PullRequest {
+
     private final RemotingCommand requestCommand;
     private final Channel clientChannel;
     private final long timeoutMillis;
@@ -30,9 +31,10 @@ public class PullRequest {
     private final SubscriptionData subscriptionData;
     private final MessageFilter messageFilter;
 
-    public PullRequest(RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis, long suspendTimestamp,
-        long pullFromThisOffset, SubscriptionData subscriptionData,
-        MessageFilter messageFilter) {
+    public PullRequest(
+        RemotingCommand requestCommand, Channel clientChannel, long timeoutMillis, long suspendTimestamp,
+        long pullFromThisOffset, SubscriptionData subscriptionData, MessageFilter messageFilter
+    ) {
         this.requestCommand = requestCommand;
         this.clientChannel = clientChannel;
         this.timeoutMillis = timeoutMillis;
@@ -69,4 +71,5 @@ public class PullRequest {
     public MessageFilter getMessageFilter() {
         return messageFilter;
     }
+
 }

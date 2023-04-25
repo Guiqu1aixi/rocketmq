@@ -16,17 +16,6 @@
  */
 package org.apache.rocketmq.client.impl;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -37,25 +26,27 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.message.*;
 import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageId;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MQAdminImpl {
 
@@ -255,17 +246,20 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    public MessageExt viewMessage(
-        String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-
-        MessageId messageId = null;
+    public MessageExt viewMessage(String msgId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException
+    {
+        MessageId messageId;
         try {
             messageId = MessageDecoder.decodeMessageId(msgId);
         } catch (Exception e) {
             throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
         }
-        return this.mQClientFactory.getMQClientAPIImpl().viewMessage(RemotingUtil.socketAddress2String(messageId.getAddress()),
-            messageId.getOffset(), timeoutMillis);
+        return this.mQClientFactory.getMQClientAPIImpl().viewMessage(
+            RemotingUtil.socketAddress2String(messageId.getAddress()),
+            messageId.getOffset(),
+            timeoutMillis
+        );
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
@@ -318,53 +312,54 @@ public class MQAdminImpl {
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
 
-                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, timeoutMillis * 3,
-                            new InvokeCallback() {
-                                @Override
-                                public void operationComplete(ResponseFuture responseFuture) {
-                                    try {
-                                        RemotingCommand response = responseFuture.getResponseCommand();
-                                        if (response != null) {
-                                            switch (response.getCode()) {
-                                                case ResponseCode.SUCCESS: {
-                                                    QueryMessageResponseHeader responseHeader = null;
-                                                    try {
-                                                        responseHeader =
-                                                            (QueryMessageResponseHeader) response
-                                                                .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
-                                                    } catch (RemotingCommandException e) {
-                                                        log.error("decodeCommandCustomHeader exception", e);
-                                                        return;
-                                                    }
-
-                                                    List<MessageExt> wrappers =
-                                                        MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()), true);
-
-                                                    QueryResult qr = new QueryResult(responseHeader.getIndexLastUpdateTimestamp(), wrappers);
-                                                    try {
-                                                        lock.writeLock().lock();
-                                                        queryResultList.add(qr);
-                                                    } finally {
-                                                        lock.writeLock().unlock();
-                                                    }
-                                                    break;
+                        this.mQClientFactory.getMQClientAPIImpl().queryMessage(
+                            addr,
+                            requestHeader,
+                            timeoutMillis * 3,
+                            responseFuture -> {
+                                try {
+                                    RemotingCommand response = responseFuture.getResponseCommand();
+                                    if (response != null) {
+                                        switch (response.getCode()) {
+                                            case ResponseCode.SUCCESS: {
+                                                QueryMessageResponseHeader responseHeader = null;
+                                                try {
+                                                    responseHeader =
+                                                        (QueryMessageResponseHeader) response
+                                                            .decodeCommandCustomHeader(QueryMessageResponseHeader.class);
+                                                } catch (RemotingCommandException e) {
+                                                    log.error("decodeCommandCustomHeader exception", e);
+                                                    return;
                                                 }
-                                                default:
-                                                    log.warn("getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
-                                                    break;
+
+                                                List<MessageExt> wrappers =
+                                                    MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()), true);
+
+                                                QueryResult qr = new QueryResult(responseHeader.getIndexLastUpdateTimestamp(), wrappers);
+                                                try {
+                                                    lock.writeLock().lock();
+                                                    queryResultList.add(qr);
+                                                } finally {
+                                                    lock.writeLock().unlock();
+                                                }
+                                                break;
                                             }
-                                        } else {
-                                            log.warn("getResponseCommand return null");
+                                            default:
+                                                log.warn("getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
+                                                break;
                                         }
-                                    } finally {
-                                        countDownLatch.countDown();
+                                    } else {
+                                        log.warn("getResponseCommand return null");
                                     }
+                                } finally {
+                                    countDownLatch.countDown();
                                 }
-                            }, isUniqKey);
+                            },
+                            isUniqKey
+                        );
                     } catch (Exception e) {
                         log.warn("queryMessage exception", e);
                     }
-
                 }
 
                 boolean ok = countDownLatch.await(timeoutMillis * 4, TimeUnit.MILLISECONDS);
@@ -373,7 +368,7 @@ public class MQAdminImpl {
                 }
 
                 long indexLastUpdateTimestamp = 0;
-                List<MessageExt> messageList = new LinkedList<MessageExt>();
+                List<MessageExt> messageList = new LinkedList<>();
                 for (QueryResult qr : queryResultList) {
                     if (qr.getIndexLastUpdateTimestamp() > indexLastUpdateTimestamp) {
                         indexLastUpdateTimestamp = qr.getIndexLastUpdateTimestamp();
@@ -382,17 +377,13 @@ public class MQAdminImpl {
                     for (MessageExt msgExt : qr.getMessageList()) {
                         if (isUniqKey) {
                             if (msgExt.getMsgId().equals(key)) {
-
                                 if (messageList.size() > 0) {
-
                                     if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
-
                                         messageList.clear();
                                         messageList.add(msgExt);
                                     }
 
                                 } else {
-
                                     messageList.add(msgExt);
                                 }
                             } else {

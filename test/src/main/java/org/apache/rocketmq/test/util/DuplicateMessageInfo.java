@@ -33,15 +33,15 @@ public class DuplicateMessageInfo<T> {
         List<List<T>> lQueueList) throws IOException {
         int msgListSize = lQueueList.size();
         int maxmsgList = 0;
-        Map<T, Integer> msgIdMap = new HashMap<T, Integer>();
-        Map<Integer, Integer> dupMsgMap = new HashMap<Integer, Integer>();
+        Map<T, Integer> msgIdMap = new HashMap<>();
+        Map<Integer, Integer> dupMsgMap = new HashMap<>();
 
         for (int i = 0; i < msgListSize; i++) {
             if (maxmsgList < lQueueList.get(i).size())
                 maxmsgList = lQueueList.get(i).size();
         }
 
-        List<StringBuilder> strBQueue = new LinkedList<StringBuilder>();
+        List<StringBuilder> strBQueue = new LinkedList<>();
         for (int i = 0; i < msgListSize; i++)
             strBQueue.add(new StringBuilder());
 

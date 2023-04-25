@@ -16,17 +16,27 @@
  */
 package org.apache.rocketmq.store.util;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.NativeLong;
-import com.sun.jna.Platform;
-import com.sun.jna.Pointer;
+import com.sun.jna.*;
 
+/**
+ * Java JNA 机制
+ * 相比 JNI 而言，性能会有下降，但是更加易用
+ * 接口不需要实现，但是依然可以调用操作系统提供的调用
+ */
 public interface LibC extends Library {
+
     LibC INSTANCE = (LibC) Native.loadLibrary(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
 
+    /**
+     * 表示应用程序希望很快访问此地址范围
+     */
     int MADV_WILLNEED = 3;
+
+    /**
+     * 表示应用程序不希望很快访问此地址范围
+     */
     int MADV_DONTNEED = 4;
+
 
     int MCL_CURRENT = 1;
     int MCL_FUTURE = 2;
@@ -39,8 +49,15 @@ public interface LibC extends Library {
     /* synchronous memory sync */
     int MS_SYNC = 0x0004;
 
+    /**
+     * 锁定内存
+     * 防止操作系统将物理内存交换到硬盘
+     */
     int mlock(Pointer var1, NativeLong var2);
 
+    /**
+     * 解锁内存
+     */
     int munlock(Pointer var1, NativeLong var2);
 
     int madvise(Pointer var1, NativeLong var2, int var3);
@@ -50,4 +67,5 @@ public interface LibC extends Library {
     int mlockall(int flags);
 
     int msync(Pointer p, NativeLong length, int flags);
+
 }

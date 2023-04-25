@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -34,6 +32,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Default pulling consumer.
  * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumer} is recommend to use
@@ -48,39 +49,49 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      * Do the same thing for the same Group, the application must be set,and guarantee Globally unique
      */
     private String consumerGroup;
+
     /**
+     * 长轮训模式下，拉取消息请求 Hold 的时间，默认20s，可调整
      * Long polling mode, the Consumer connection max suspend time, it is not recommended to modify
      */
     private long brokerSuspendMaxTimeMillis = 1000 * 20;
+
     /**
      * Long polling mode, the Consumer connection timeout(must greater than brokerSuspendMaxTimeMillis), it is not
      * recommended to modify
      */
     private long consumerTimeoutMillisWhenSuspend = 1000 * 30;
+
     /**
      * The socket timeout in milliseconds
      */
     private long consumerPullTimeoutMillis = 1000 * 10;
+
     /**
      * Consumption pattern,default is clustering
      */
     private MessageModel messageModel = MessageModel.CLUSTERING;
+
     /**
      * Message queue listener
      */
     private MessageQueueListener messageQueueListener;
+
     /**
      * Offset Storage
      */
     private OffsetStore offsetStore;
+
     /**
      * Topic set you want to register
      */
-    private Set<String> registerTopics = new HashSet<String>();
+    private Set<String> registerTopics = new HashSet<>();
+
     /**
-     * Queue allocation algorithm
+     *  队列负载均衡算法 Queue allocation algorithm
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
+
     /**
      * Whether the unit of subscription group
      */
@@ -92,7 +103,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, null);
     }
 
-    public DefaultMQPullConsumer(final String consumerGroup) {
+    public DefaultMQPullConsumer(String consumerGroup) {
         this(null, consumerGroup, null);
     }
 
@@ -100,20 +111,21 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         this(null, MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
     }
 
-    public DefaultMQPullConsumer(final String consumerGroup, RPCHook rpcHook) {
+    public DefaultMQPullConsumer(String consumerGroup, RPCHook rpcHook) {
         this(null, consumerGroup, rpcHook);
     }
 
-    public DefaultMQPullConsumer(final String namespace, final String consumerGroup) {
+    public DefaultMQPullConsumer(String namespace, String consumerGroup) {
         this(namespace, consumerGroup, null);
     }
+
     /**
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
      * @param rpcHook RPC hook to execute before each remoting command.
      */
-    public DefaultMQPullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
+    public DefaultMQPullConsumer(String namespace, String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
         defaultMQPullConsumerImpl = new DefaultMQPullConsumerImpl(this, rpcHook);
@@ -391,8 +403,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
     @Override
-    public MessageExt viewMessage(String topic,
-        String uniqKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    public MessageExt viewMessage(String topic, String uniqKey) throws InterruptedException, MQClientException {
         try {
             MessageDecoder.decodeMessageId(uniqKey);
             return this.viewMessage(uniqKey);
@@ -448,4 +459,5 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
     }
+
 }

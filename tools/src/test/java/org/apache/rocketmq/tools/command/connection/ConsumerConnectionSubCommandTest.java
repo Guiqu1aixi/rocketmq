@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.connection;
 
-import java.lang.reflect.Field;
-import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -45,6 +42,10 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;

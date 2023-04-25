@@ -42,6 +42,4 @@ public class SubscriptionSysFlag {
         return (sysFlag & FLAG_UNIT) == FLAG_UNIT;
     }
 
-    public static void main(String[] args) {
-    }
 }

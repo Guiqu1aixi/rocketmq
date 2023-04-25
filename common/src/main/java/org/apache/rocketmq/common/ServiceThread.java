@@ -23,6 +23,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public abstract class ServiceThread implements Runnable {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private static final long JOIN_TIME = 90 * 1000;
@@ -33,7 +34,7 @@ public abstract class ServiceThread implements Runnable {
     protected volatile boolean stopped = false;
     protected boolean isDaemon = false;
 
-    //Make it able to restart the thread
+    /* Make it able to restart the thread */
     private final AtomicBoolean started = new AtomicBoolean(false);
 
     public ServiceThread() {
@@ -57,7 +58,7 @@ public abstract class ServiceThread implements Runnable {
         this.shutdown(false);
     }
 
-    public void shutdown(final boolean interrupt) {
+    public void shutdown(boolean interrupt) {
         log.info("Try to shutdown service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
         if (!started.compareAndSet(true, false)) {
             return;
@@ -79,8 +80,9 @@ public abstract class ServiceThread implements Runnable {
                 this.thread.join(this.getJointime());
             }
             long elapsedTime = System.currentTimeMillis() - beginTime;
-            log.info("join thread " + this.getServiceName() + " elapsed time(ms) " + elapsedTime + " "
-                + this.getJointime());
+            log.info("join thread " + this.getServiceName() + " elapsed time(ms) "
+                + elapsedTime + " " + this.getJointime()
+            );
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         }
@@ -96,7 +98,7 @@ public abstract class ServiceThread implements Runnable {
     }
 
     @Deprecated
-    public void stop(final boolean interrupt) {
+    public void stop(boolean interrupt) {
         if (!started.get()) {
             return;
         }
@@ -132,7 +134,7 @@ public abstract class ServiceThread implements Runnable {
             return;
         }
 
-        //entry to wait
+        /* entry to wait */
         waitPoint.reset();
 
         try {
@@ -159,4 +161,5 @@ public abstract class ServiceThread implements Runnable {
     public void setDaemon(boolean daemon) {
         isDaemon = daemon;
     }
+
 }

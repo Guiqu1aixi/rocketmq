@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class PullMessageResponseHeader implements CommandCustomHeader {
+
     @CFNotNull
     private Long suggestWhichBrokerId;
     @CFNotNull
@@ -69,4 +70,5 @@ public class PullMessageResponseHeader implements CommandCustomHeader {
     public void setSuggestWhichBrokerId(Long suggestWhichBrokerId) {
         this.suggestWhichBrokerId = suggestWhichBrokerId;
     }
+
 }

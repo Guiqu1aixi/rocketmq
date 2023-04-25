@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
 
 public class BrokerStartup {
+
     public static Properties properties = null;
     public static CommandLine commandLine = null;
     public static String configFile = null;
@@ -60,7 +61,6 @@ public class BrokerStartup {
 
     public static BrokerController start(BrokerController controller) {
         try {
-
             controller.start();
 
             String tip = "The broker[" + controller.getBrokerConfig().getBrokerName() + ", "
@@ -81,7 +81,7 @@ public class BrokerStartup {
         return null;
     }
 
-    public static void shutdown(final BrokerController controller) {
+    public static void shutdown(BrokerController controller) {
         if (null != controller) {
             controller.shutdown();
         }
@@ -169,10 +169,9 @@ public class BrokerStartup {
                     break;
                 case SLAVE:
                     if (brokerConfig.getBrokerId() <= 0) {
-                        System.out.printf("Slave's brokerId must be > 0");
+                        System.out.print("Slave's brokerId must be > 0");
                         System.exit(-3);
                     }
-
                     break;
                 default:
                     break;
@@ -211,14 +210,14 @@ public class BrokerStartup {
             MixAll.printObjectProperties(log, nettyClientConfig);
             MixAll.printObjectProperties(log, messageStoreConfig);
 
-            final BrokerController controller = new BrokerController(
+            BrokerController controller = new BrokerController(
                 brokerConfig,
                 nettyServerConfig,
                 nettyClientConfig,
-                messageStoreConfig);
-            // remember all configs to prevent discard
+                messageStoreConfig
+            );
+            /* remember all configs to prevent discard */
             controller.getConfiguration().registerConfig(properties);
-
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();
@@ -227,7 +226,7 @@ public class BrokerStartup {
 
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
-                private AtomicInteger shutdownTimes = new AtomicInteger(0);
+                private final AtomicInteger shutdownTimes = new AtomicInteger(0);
 
                 @Override
                 public void run() {
@@ -278,4 +277,5 @@ public class BrokerStartup {
 
         return options;
     }
+
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
-import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -28,6 +27,8 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+
+import java.util.Set;
 
 public class DeleteSubscriptionGroupCommand implements SubCommand {
     @Override

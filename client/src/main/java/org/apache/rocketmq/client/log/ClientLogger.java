@@ -20,12 +20,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InnerLoggerFactory;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.logging.inner.Appender;
-import org.apache.rocketmq.logging.inner.Layout;
-import org.apache.rocketmq.logging.inner.Level;
-import org.apache.rocketmq.logging.inner.Logger;
-import org.apache.rocketmq.logging.inner.LoggingBuilder;
-import org.apache.rocketmq.logging.inner.LoggingEvent;
+import org.apache.rocketmq.logging.inner.*;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class ClientLogger {

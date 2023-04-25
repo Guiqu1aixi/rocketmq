@@ -21,6 +21,7 @@ import io.netty.handler.ssl.SslContext;
 import org.apache.rocketmq.remoting.common.TlsMode;
 
 public class TlsSystemConfig {
+
     public static final String TLS_SERVER_MODE = "tls.server.mode";
     public static final String TLS_ENABLE = "tls.enable";
     public static final String TLS_CONFIG_FILE = "tls.config.file";
@@ -122,4 +123,5 @@ public class TlsSystemConfig {
      * except {@link TlsSystemConfig#tlsMode} and {@link TlsSystemConfig#tlsEnable}
      */
     public static String tlsConfigFile = System.getProperty(TLS_CONFIG_FILE, "/etc/rocketmq/tls.properties");
+
 }

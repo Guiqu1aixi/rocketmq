@@ -16,17 +16,16 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import java.lang.reflect.Field;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-import static org.apache.rocketmq.acl.common.SessionCredentials.ACCESS_KEY;
-import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
-import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
+import java.lang.reflect.Field;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.apache.rocketmq.acl.common.SessionCredentials.*;
 
 public class AclClientRPCHook implements RPCHook {
     private final SessionCredentials sessionCredentials;

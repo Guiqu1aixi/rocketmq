@@ -17,34 +17,43 @@
 package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class ConsumerManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
-    private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
-        new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
+    
+    private final static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    
+    private final static long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
+
+    /**
+     * ConcurrentMap<consumerGroup, ConsumerGroupInfo>
+     * @see #registerConsumer
+     */
+    private final ConcurrentMap<String, ConsumerGroupInfo> consumerTable =
+        new ConcurrentHashMap<>(1024);
+
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
-    public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
+    public ConsumerManager(ConsumerIdsChangeListener consumerIdsChangeListener) {
         this.consumerIdsChangeListener = consumerIdsChangeListener;
     }
 
-    public ClientChannelInfo findChannel(final String group, final String clientId) {
+    public ClientChannelInfo findChannel(String group, String clientId) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (consumerGroupInfo != null) {
             return consumerGroupInfo.findChannel(clientId);
@@ -52,7 +61,7 @@ public class ConsumerManager {
         return null;
     }
 
-    public SubscriptionData findSubscriptionData(final String group, final String topic) {
+    public SubscriptionData findSubscriptionData(String group, String topic) {
         ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
         if (consumerGroupInfo != null) {
             return consumerGroupInfo.findSubscriptionData(topic);
@@ -61,11 +70,11 @@ public class ConsumerManager {
         return null;
     }
 
-    public ConsumerGroupInfo getConsumerGroupInfo(final String group) {
+    public ConsumerGroupInfo getConsumerGroupInfo(String group) {
         return this.consumerTable.get(group);
     }
 
-    public int findSubscriptionDataCount(final String group) {
+    public int findSubscriptionDataCount(String group) {
         ConsumerGroupInfo consumerGroupInfo = this.getConsumerGroupInfo(group);
         if (consumerGroupInfo != null) {
             return consumerGroupInfo.getSubscriptionTable().size();
@@ -74,7 +83,7 @@ public class ConsumerManager {
         return 0;
     }
 
-    public void doChannelCloseEvent(final String remoteAddr, final Channel channel) {
+    public void doChannelCloseEvent(String remoteAddr, Channel channel) {
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
@@ -95,10 +104,13 @@ public class ConsumerManager {
         }
     }
 
-    public boolean registerConsumer(final String group, final ClientChannelInfo clientChannelInfo,
+    /**
+     * @see DefaultConsumerIdsChangeListener#handle
+     */
+    public boolean registerConsumer(String group, ClientChannelInfo clientChannelInfo,
         ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere,
-        final Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable) {
-
+        Set<SubscriptionData> subList, boolean isNotifyConsumerIdsChangedEnable
+    ) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null == consumerGroupInfo) {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
@@ -106,9 +118,9 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
-        boolean r1 =
-            consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
-                consumeFromWhere);
+        boolean r1 = consumerGroupInfo.updateChannel(
+            clientChannelInfo, consumeType, messageModel, consumeFromWhere
+        );
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {
@@ -118,11 +130,10 @@ public class ConsumerManager {
         }
 
         this.consumerIdsChangeListener.handle(ConsumerGroupEvent.REGISTER, group, subList);
-
         return r1 || r2;
     }
 
-    public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo,
+    public void unregisterConsumer(String group, ClientChannelInfo clientChannelInfo,
         boolean isNotifyConsumerIdsChangedEnable) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
@@ -131,7 +142,6 @@ public class ConsumerManager {
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
                 if (remove != null) {
                     log.info("unregister consumer ok, no any connection, and remove consumer group, {}", group);
-
                     this.consumerIdsChangeListener.handle(ConsumerGroupEvent.UNREGISTER, group);
                 }
             }
@@ -147,8 +157,7 @@ public class ConsumerManager {
             Entry<String, ConsumerGroupInfo> next = it.next();
             String group = next.getKey();
             ConsumerGroupInfo consumerGroupInfo = next.getValue();
-            ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-                consumerGroupInfo.getChannelInfoTable();
+            ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable = consumerGroupInfo.getChannelInfoTable();
 
             Iterator<Entry<Channel, ClientChannelInfo>> itChannel = channelInfoTable.entrySet().iterator();
             while (itChannel.hasNext()) {
@@ -158,7 +167,8 @@ public class ConsumerManager {
                 if (diff > CHANNEL_EXPIRED_TIMEOUT) {
                     log.warn(
                         "SCAN: remove expired channel from ConsumerManager consumerTable. channel={}, consumerGroup={}",
-                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()), group);
+                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()), group
+                    );
                     RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                     itChannel.remove();
                 }
@@ -167,13 +177,14 @@ public class ConsumerManager {
             if (channelInfoTable.isEmpty()) {
                 log.warn(
                     "SCAN: remove expired channel from ConsumerManager consumerTable, all clear, consumerGroup={}",
-                    group);
+                    group
+                );
                 it.remove();
             }
         }
     }
 
-    public HashSet<String> queryTopicConsumeByWho(final String topic) {
+    public HashSet<String> queryTopicConsumeByWho(String topic) {
         HashSet<String> groups = new HashSet<>();
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -186,4 +197,5 @@ public class ConsumerManager {
         }
         return groups;
     }
+
 }

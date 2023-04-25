@@ -86,7 +86,7 @@ public class RocketmqLog4jAppender extends AppenderSkeleton {
             Message msg = new Message(topic, tag, data);
             msg.getProperties().put(ProducerInstance.APPENDER_TYPE, ProducerInstance.LOG4J_APPENDER);
 
-            //Send message and do not wait for the ack from the message broker.
+            /* Send message and do not wait for the ack from the message broker. */
             producer.sendOneway(msg);
         } catch (Exception e) {
             String msg = new String(data);

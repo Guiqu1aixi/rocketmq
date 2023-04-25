@@ -17,15 +17,6 @@
 
 package org.apache.rocketmq.tools.monitor;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.TreeMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
@@ -40,8 +31,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.Connection;
@@ -49,9 +38,17 @@ import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MonitorService {
     private final InternalLogger log = ClientLogger.getLog();
@@ -85,25 +82,20 @@ public class MonitorService {
             this.defaultMQPushConsumer.setConsumeThreadMin(1);
             this.defaultMQPushConsumer.setConsumeThreadMax(1);
             this.defaultMQPushConsumer.subscribe(TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT, "*");
-            this.defaultMQPushConsumer.registerMessageListener(new MessageListenerConcurrently() {
+            this.defaultMQPushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+                try {
+                    OffsetMovedEvent ome =
+                        OffsetMovedEvent.decode(msgs.get(0).getBody(), OffsetMovedEvent.class);
 
-                @Override
-                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
-                    ConsumeConcurrentlyContext context) {
-                    try {
-                        OffsetMovedEvent ome =
-                            OffsetMovedEvent.decode(msgs.get(0).getBody(), OffsetMovedEvent.class);
+                    DeleteMsgsEvent deleteMsgsEvent = new DeleteMsgsEvent();
+                    deleteMsgsEvent.setOffsetMovedEvent(ome);
+                    deleteMsgsEvent.setEventTimestamp(msgs.get(0).getStoreTimestamp());
 
-                        DeleteMsgsEvent deleteMsgsEvent = new DeleteMsgsEvent();
-                        deleteMsgsEvent.setOffsetMovedEvent(ome);
-                        deleteMsgsEvent.setEventTimestamp(msgs.get(0).getStoreTimestamp());
-
-                        MonitorService.this.monitorListener.reportDeleteMsgsEvent(deleteMsgsEvent);
-                    } catch (Exception e) {
-                    }
-
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                    MonitorService.this.monitorListener.reportDeleteMsgsEvent(deleteMsgsEvent);
+                } catch (Exception e) {
                 }
+
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });
         } catch (MQClientException e) {
         }
@@ -114,7 +106,7 @@ public class MonitorService {
     }
 
     public static void main0(String[] args, RPCHook rpcHook) throws MQClientException {
-        final MonitorService monitorService =
+        MonitorService monitorService =
             new MonitorService(new MonitorConfig(), new DefaultMonitorListener(), rpcHook);
         monitorService.start();
 
@@ -154,16 +146,18 @@ public class MonitorService {
     }
 
     private void startScheduleTask() {
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        this.scheduledExecutorService.scheduleAtFixedRate(
+            () -> {
                 try {
                     MonitorService.this.doMonitorWork();
                 } catch (Exception e) {
                     log.error("doMonitorWork Exception", e);
                 }
-            }
-        }, 1000 * 20, this.monitorConfig.getRoundInterval(), TimeUnit.MILLISECONDS);
+            },
+            1000 * 20,
+            this.monitorConfig.getRoundInterval(),
+            TimeUnit.MILLISECONDS
+        );
     }
 
     public void doMonitorWork() throws RemotingException, MQClientException, InterruptedException {

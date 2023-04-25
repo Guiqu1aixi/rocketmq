@@ -20,9 +20,9 @@ package org.apache.rocketmq.broker.filter;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.store.CommitLogDispatcher;
 import org.apache.rocketmq.store.DispatchRequest;
 

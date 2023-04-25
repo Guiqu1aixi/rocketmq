@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.test.client.producer.batch;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -33,6 +30,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class BatchSendIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);

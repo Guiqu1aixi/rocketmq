@@ -16,20 +16,22 @@
  */
 package org.apache.rocketmq.client;
 
-import java.util.Set;
-import java.util.TreeSet;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.InternalLogger;
+
+import java.util.Set;
+import java.util.TreeSet;
 
 public class MQHelper {
+
     public static void resetOffsetByTimestamp(
-        final MessageModel messageModel,
-        final String consumerGroup,
-        final String topic,
-        final long timestamp) throws Exception {
+        MessageModel messageModel,
+        String consumerGroup,
+        String topic,
+        long timestamp) throws Exception {
         resetOffsetByTimestamp(messageModel, "DEFAULT", consumerGroup, topic, timestamp);
     }
 

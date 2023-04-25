@@ -123,7 +123,7 @@ msgId一定是全局唯一标识符，但是实际使用中，可能会存在相
 如果消息量较少，建议在消费入口方法打印消息，消费耗时等，方便后续排查问题。
 
 
-```java
+```
    public ConsumeConcurrentlyStatus consumeMessage(
             List<MessageExt> msgs,
             ConsumeConcurrentlyContext context) {

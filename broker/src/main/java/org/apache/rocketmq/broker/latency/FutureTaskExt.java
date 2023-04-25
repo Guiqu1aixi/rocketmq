@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 public class FutureTaskExt<V> extends FutureTask<V> {
+
     private final Runnable runnable;
 
     public FutureTaskExt(final Callable<V> callable) {
@@ -36,4 +37,5 @@ public class FutureTaskExt<V> extends FutureTask<V> {
     public Runnable getRunnable() {
         return runnable;
     }
+
 }

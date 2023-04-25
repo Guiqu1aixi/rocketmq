@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.broker.pagecache;
 
-import java.nio.ByteBuffer;
 import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.nio.ByteBuffer;
 
 public class OneMessageTransferTest {
 

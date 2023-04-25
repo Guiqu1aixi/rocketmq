@@ -574,21 +574,18 @@ public class DefaultLitePullConsumerTest {
 
         when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-            .thenAnswer(new Answer<Object>() {
-                @Override
-                public Object answer(InvocationOnMock mock) throws Throwable {
-                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                    MessageClientExt messageClientExt = new MessageClientExt();
-                    messageClientExt.setTopic(topic);
-                    messageClientExt.setQueueId(0);
-                    messageClientExt.setMsgId("123");
-                    messageClientExt.setBody(new byte[] {'a'});
-                    messageClientExt.setOffsetMsgId("234");
-                    messageClientExt.setBornHost(new InetSocketAddress(8080));
-                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
-                    return pullResult;
-                }
+            .thenAnswer(mock -> {
+                PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                MessageClientExt messageClientExt = new MessageClientExt();
+                messageClientExt.setTopic(topic);
+                messageClientExt.setQueueId(0);
+                messageClientExt.setMsgId("123");
+                messageClientExt.setBody(new byte[] {'a'});
+                messageClientExt.setOffsetMsgId("234");
+                messageClientExt.setBornHost(new InetSocketAddress(8080));
+                messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                return pullResult;
             });
 
         when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));

@@ -32,10 +32,11 @@ import org.apache.rocketmq.test.util.MQWait;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static com.google.common.truth.Truth.assertThat;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.google.common.truth.Truth.assertThat;
 
 public class TransactionalMsgIT extends BaseConf {
     private static Logger logger = Logger.getLogger(TransactionalMsgIT.class);

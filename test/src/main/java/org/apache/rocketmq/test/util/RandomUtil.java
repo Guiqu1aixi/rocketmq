@@ -17,11 +17,7 @@
 
 package org.apache.rocketmq.test.util;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public final class RandomUtil {
 

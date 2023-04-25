@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.acl;
 
-import java.util.List;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.util.List;
 
 public interface AccessValidator {
 

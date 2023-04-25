@@ -16,47 +16,44 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.logging.InternalLogger;
 
+import java.util.concurrent.*;
+
+/**
+ * 消息拉取服务线程
+ */
 public class PullMessageService extends ServiceThread {
+
     private final InternalLogger log = ClientLogger.getLog();
-    private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<PullRequest>();
+
+    private final LinkedBlockingQueue<PullRequest> pullRequestQueue = new LinkedBlockingQueue<>();
     private final MQClientInstance mQClientFactory;
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "PullMessageServiceScheduledThread");
-            }
-        });
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        r -> new Thread(r, "PullMessageServiceScheduledThread")
+    );
 
     public PullMessageService(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
     }
 
-    public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
+    public void executePullRequestLater(PullRequest pullRequest, long timeDelay) {
         if (!isStopped()) {
-            this.scheduledExecutorService.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    PullMessageService.this.executePullRequestImmediately(pullRequest);
-                }
-            }, timeDelay, TimeUnit.MILLISECONDS);
+            this.scheduledExecutorService.schedule(
+                () -> executePullRequestImmediately(pullRequest),
+                timeDelay,
+                TimeUnit.MILLISECONDS
+            );
         } else {
             log.warn("PullMessageServiceScheduledThread has shutdown");
         }
     }
 
-    public void executePullRequestImmediately(final PullRequest pullRequest) {
+    public void executePullRequestImmediately(PullRequest pullRequest) {
         try {
             this.pullRequestQueue.put(pullRequest);
         } catch (InterruptedException e) {
@@ -64,7 +61,7 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
-    public void executeTaskLater(final Runnable r, final long timeDelay) {
+    public void executeTaskLater(Runnable r, long timeDelay) {
         if (!isStopped()) {
             this.scheduledExecutorService.schedule(r, timeDelay, TimeUnit.MILLISECONDS);
         } else {
@@ -76,8 +73,8 @@ public class PullMessageService extends ServiceThread {
         return scheduledExecutorService;
     }
 
-    private void pullMessage(final PullRequest pullRequest) {
-        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
+    private void pullMessage(PullRequest pullRequest) {
+        MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.pullMessage(pullRequest);
@@ -86,13 +83,21 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    /**
+     * 进行消息拉取实际上就是从 pullRequestQueue 中获取任务
+     * 能向 pullRequestQueue 队列中提交 PullRequest，PullMessageService 一共暴露了两个方法
+     * @see #executePullRequestImmediately(PullRequest) 立即向队列中添加任务
+     * @see #executePullRequestLater(PullRequest, long) 延迟一段时间后添加任务
+     */
     @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
-
+        /* 每次拉取消息都要检测自身状态，意味着别的线程可以通过改变 stopped 的状态来影响拉取消息的线程 */
         while (!this.isStopped()) {
             try {
+                /* pullRequestQueue 队列为空会阻塞 */
                 PullRequest pullRequest = this.pullRequestQueue.take();
+                /* 进行消息拉取 */
                 this.pullMessage(pullRequest);
             } catch (InterruptedException ignored) {
             } catch (Exception e) {
@@ -106,7 +111,11 @@ public class PullMessageService extends ServiceThread {
     @Override
     public void shutdown(boolean interrupt) {
         super.shutdown(interrupt);
-        ThreadUtils.shutdownGracefully(this.scheduledExecutorService, 1000, TimeUnit.MILLISECONDS);
+        ThreadUtils.shutdownGracefully(
+                this.scheduledExecutorService,
+                1000,
+                TimeUnit.MILLISECONDS
+        );
     }
 
     @Override

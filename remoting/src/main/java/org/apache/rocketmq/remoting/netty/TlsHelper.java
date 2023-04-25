@@ -61,6 +61,8 @@ import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsTestModeEnab
 
 public class TlsHelper {
 
+    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+
     public interface DecryptionStrategy {
         /**
          * Decrypt the target encrpted private key file.
@@ -73,18 +75,10 @@ public class TlsHelper {
         InputStream decryptPrivateKey(String privateKeyEncryptPath, boolean forClient) throws IOException;
     }
 
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static DecryptionStrategy decryptionStrategy =
+        (privateKeyEncryptPath, forClient) -> new FileInputStream(privateKeyEncryptPath);
 
-    private static DecryptionStrategy decryptionStrategy = new DecryptionStrategy() {
-        @Override
-        public InputStream decryptPrivateKey(final String privateKeyEncryptPath,
-            final boolean forClient) throws IOException {
-            return new FileInputStream(privateKeyEncryptPath);
-        }
-    };
-
-
-    public static void registerDecryptionStrategy(final DecryptionStrategy decryptionStrategy) {
+    public static void registerDecryptionStrategy(DecryptionStrategy decryptionStrategy) {
         TlsHelper.decryptionStrategy = decryptionStrategy;
     }
 
@@ -112,7 +106,6 @@ public class TlsHelper {
             } else {
                 SslContextBuilder sslContextBuilder = SslContextBuilder.forClient().sslProvider(SslProvider.JDK);
 
-
                 if (!tlsClientAuthServer) {
                     sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);
                 } else {
@@ -124,11 +117,10 @@ public class TlsHelper {
                 return sslContextBuilder.keyManager(
                     !isNullOrEmpty(tlsClientCertPath) ? new FileInputStream(tlsClientCertPath) : null,
                     !isNullOrEmpty(tlsClientKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsClientKeyPath, true) : null,
-                    !isNullOrEmpty(tlsClientKeyPassword) ? tlsClientKeyPassword : null)
-                    .build();
+                    !isNullOrEmpty(tlsClientKeyPassword) ? tlsClientKeyPassword : null
+                ).build();
             }
         } else {
-
             if (tlsTestModeEnable) {
                 SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
                 return SslContextBuilder
@@ -140,8 +132,8 @@ public class TlsHelper {
                 SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(
                     !isNullOrEmpty(tlsServerCertPath) ? new FileInputStream(tlsServerCertPath) : null,
                     !isNullOrEmpty(tlsServerKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsServerKeyPath, false) : null,
-                    !isNullOrEmpty(tlsServerKeyPassword) ? tlsServerKeyPassword : null)
-                    .sslProvider(provider);
+                    !isNullOrEmpty(tlsServerKeyPassword) ? tlsServerKeyPassword : null
+                ).sslProvider(provider);
 
                 if (!tlsServerAuthClient) {
                     sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);

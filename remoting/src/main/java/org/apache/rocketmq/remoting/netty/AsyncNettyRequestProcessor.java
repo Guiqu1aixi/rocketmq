@@ -26,4 +26,5 @@ public abstract class AsyncNettyRequestProcessor implements NettyRequestProcesso
         RemotingCommand response = processRequest(ctx, request);
         responseCallback.callback(response);
     }
+
 }

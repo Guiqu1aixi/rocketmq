@@ -19,14 +19,32 @@ package org.apache.rocketmq.common.protocol;
 
 public class RequestCode {
 
+    /**
+     * 同步发送消息
+     * @see org.apache.rocketmq.client.impl.MQClientAPIImpl#sendMessage
+     */
     public static final int SEND_MESSAGE = 10;
 
+    /**
+     * 消息拉取命令
+     * @see org.apache.rocketmq.client.impl.MQClientAPIImpl#pullMessage
+     */
     public static final int PULL_MESSAGE = 11;
 
     public static final int QUERY_MESSAGE = 12;
     public static final int QUERY_BROKER_OFFSET = 13;
+
+    /**
+     * 获取消费者消费偏移量
+     */
     public static final int QUERY_CONSUMER_OFFSET = 14;
+
+    /**
+     * 持久化各个 MessageQueue 的消息消费进度
+     * @see org.apache.rocketmq.client.impl.MQClientAPIImpl#updateConsumerOffset
+     */
     public static final int UPDATE_CONSUMER_OFFSET = 15;
+
     public static final int UPDATE_AND_CREATE_TOPIC = 17;
     public static final int GET_ALL_TOPIC_CONFIG = 21;
     public static final int GET_TOPIC_CONFIG_LIST = 22;
@@ -46,21 +64,35 @@ public class RequestCode {
 
     public static final int GET_EARLIEST_MSG_STORETIME = 32;
 
+    /**
+     * Client端从MessageId中解析出Broker的地址（IP地址和端口）和Commit Log的偏移地址后封装成一个RPC请求后通过Remoting通信层发送
+     */
     public static final int VIEW_MESSAGE_BY_ID = 33;
 
     public static final int HEART_BEAT = 34;
 
     public static final int UNREGISTER_CLIENT = 35;
 
+    /**
+     * ACK
+     */
     public static final int CONSUMER_SEND_MSG_BACK = 36;
 
     public static final int END_TRANSACTION = 37;
+
+    /**
+     * 根据topic和consumerGroup为参数调用mQClientFactory.findConsumerIdList()方法向Broker端发送获取该消费组下消费者Id列表的RPC通信请求
+     * （Broker端基于前面Consumer端上报的心跳包数据而构建的consumerTable做出响应返回）
+     */
     public static final int GET_CONSUMER_LIST_BY_GROUP = 38;
 
     public static final int CHECK_TRANSACTION_STATE = 39;
 
     public static final int NOTIFY_CONSUMER_IDS_CHANGED = 40;
 
+    /**
+     * 锁定消息消费队列
+     */
     public static final int LOCK_BATCH_MQ = 41;
 
     public static final int UNLOCK_BATCH_MQ = 42;
@@ -86,9 +118,17 @@ public class RequestCode {
 
     public static final int DELETE_KV_CONFIG = 102;
 
+    /**
+     * NameServer 心跳包
+     * @see org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager#registerBroker
+     */
     public static final int REGISTER_BROKER = 103;
 
     public static final int UNREGISTER_BROKER = 104;
+    /**
+     * 根据主题名称拉取路由信息
+     * @see org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor#getRouteInfoByTopic
+     */
     public static final int GET_ROUTEINFO_BY_TOPIC = 105;
 
     public static final int GET_BROKER_CLUSTER_INFO = 106;
@@ -188,4 +228,5 @@ public class RequestCode {
     public static final int SEND_REPLY_MESSAGE_V2 = 325;
 
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
+
 }

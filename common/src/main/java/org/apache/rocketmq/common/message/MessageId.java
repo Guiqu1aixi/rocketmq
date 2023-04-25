@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.message;
 import java.net.SocketAddress;
 
 public class MessageId {
+
     private SocketAddress address;
     private long offset;
 
@@ -42,4 +43,5 @@ public class MessageId {
     public void setOffset(long offset) {
         this.offset = offset;
     }
+
 }

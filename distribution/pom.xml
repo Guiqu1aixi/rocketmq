@@ -22,8 +22,11 @@
         <artifactId>rocketmq-all</artifactId>
         <version>4.8.0</version>
     </parent>
+
     <artifactId>rocketmq-distribution</artifactId>
+
     <name>rocketmq-distribution ${project.version}</name>
+
     <packaging>pom</packaging>
 
     <profiles>

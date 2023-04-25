@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ResponseFuture {
+
     private final int opaque;
     private final Channel processChannel;
     private final long timeoutMillis;
@@ -56,6 +57,10 @@ public class ResponseFuture {
         }
     }
 
+    /**
+     * 这里有一个定时任务定期释放资源
+     * @see org.apache.rocketmq.remoting.netty.NettyRemotingAbstract#scanResponseTable()
+     */
     public void release() {
         if (this.once != null) {
             this.once.release();
@@ -67,12 +72,12 @@ public class ResponseFuture {
         return diff > this.timeoutMillis;
     }
 
-    public RemotingCommand waitResponse(final long timeoutMillis) throws InterruptedException {
+    public RemotingCommand waitResponse(long timeoutMillis) throws InterruptedException {
         this.countDownLatch.await(timeoutMillis, TimeUnit.MILLISECONDS);
         return this.responseCommand;
     }
 
-    public void putResponse(final RemotingCommand responseCommand) {
+    public void putResponse(RemotingCommand responseCommand) {
         this.responseCommand = responseCommand;
         this.countDownLatch.countDown();
     }
@@ -133,4 +138,5 @@ public class ResponseFuture {
             + ", beginTimestamp=" + beginTimestamp
             + ", countDownLatch=" + countDownLatch + "]";
     }
+
 }

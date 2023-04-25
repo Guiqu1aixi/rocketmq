@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.delay;
 
-import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -29,6 +28,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
 
 public class NormalMsgDelayIT extends DelayConf {
     private static Logger logger = Logger.getLogger(NormalMsgStaticBalanceIT.class);

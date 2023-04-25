@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Message implements Serializable {
+
     private static final long serialVersionUID = 8445773977080406428L;
 
     private String topic;
@@ -64,21 +65,21 @@ public class Message implements Serializable {
         this.putProperty(MessageConst.PROPERTY_KEYS, keys);
     }
 
-    void putProperty(final String name, final String value) {
+    void putProperty(String name, String value) {
         if (null == this.properties) {
-            this.properties = new HashMap<String, String>();
+            this.properties = new HashMap<>();
         }
 
         this.properties.put(name, value);
     }
 
-    void clearProperty(final String name) {
+    void clearProperty(String name) {
         if (null != this.properties) {
             this.properties.remove(name);
         }
     }
 
-    public void putUserProperty(final String name, final String value) {
+    public void putUserProperty(String name, String value) {
         if (MessageConst.STRING_HASH_SET.contains(name)) {
             throw new RuntimeException(String.format(
                 "The Property<%s> is used by system, input another please", name));
@@ -94,13 +95,13 @@ public class Message implements Serializable {
         this.putProperty(name, value);
     }
 
-    public String getUserProperty(final String name) {
+    public String getUserProperty(String name) {
         return this.getProperty(name);
     }
 
-    public String getProperty(final String name) {
+    public String getProperty(String name) {
         if (null == this.properties) {
-            this.properties = new HashMap<String, String>();
+            this.properties = new HashMap<>();
         }
 
         return this.properties.get(name);
@@ -215,4 +216,5 @@ public class Message implements Serializable {
             ", transactionId='" + transactionId + '\'' +
             '}';
     }
+
 }

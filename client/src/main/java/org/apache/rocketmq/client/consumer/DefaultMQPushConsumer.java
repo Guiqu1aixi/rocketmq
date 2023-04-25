@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
@@ -45,7 +42,13 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 /**
+ * Consumer入口，门面，真正的功能都委托给defaultMQPushConsumerImpl这个成员变量
+ *
  * In most scenarios, this is the mostly recommended class to consume messages.
  * </p>
  *
@@ -70,6 +73,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     protected final transient DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
 
     /**
+     * 当前消费者所属消费组
      * Consumers of the same role is required to have exactly same subscriptions and consumerGroup to correctly achieve
      * load balance. It's required and needs to be globally unique.
      * </p>
@@ -79,6 +83,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private String consumerGroup;
 
     /**
+     * 消息消费模式，分为集群模式、广播模式，默认为集群模式
      * Message model defines the way how messages are delivered to each consumer clients.
      * </p>
      *
@@ -93,6 +98,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private MessageModel messageModel = MessageModel.CLUSTERING;
 
     /**
+     * 根据消息进度从消息服务器拉取不到消息时重新计算消费策略
+     * ⚠️: 如果从消息进度服务 OffsetStore 读取到 MessageQueue 中的偏移量 >= 0，
+     * 则使用读取到的偏移量，只有在读到的偏移量 <0 时，上述策略才会生效
      * Consuming point on consumer booting.
      * </p>
      *
@@ -134,31 +142,40 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
 
     /**
+     * 集群模式下消息队列负载策略
      * Queue allocation algorithm specifying how message queues are allocated to each consumer clients.
      */
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy;
 
     /**
+     * 订阅关系
      * Subscription relationship
+     * Map<Topic, sub expression>
      */
-    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<String, String>();
+    private Map<String, String> subscription = new HashMap<>();
 
     /**
+     * 消息业务监听器
      * Message listener
      */
     private MessageListener messageListener;
 
     /**
+     * 消息消费进度存储器
      * Offset Storage
      */
     private OffsetStore offsetStore;
 
     /**
+     * 消息消费线程池最小线程数
      * Minimum consumer thread number
      */
     private int consumeThreadMin = 20;
 
     /**
+     * 消息消费线程池最大线程数
+     * ⚠️:因为是无界队列，所以其实这个配置应该是没什么作用
+     * @see org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService#ConsumeMessageOrderlyService
      * Max consumer thread number
      */
     private int consumeThreadMax = 20;
@@ -166,20 +183,26 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Threshold for dynamic adjustment of the number of thread pool
      */
-    private long adjustThreadPoolNumsThreshold = 100000;
+    private long adjustThreadPoolNumsThreshold = 10_0000;
 
     /**
+     * 并发消息消费时处理队列最大跨度，默认2000
+     * 表示如果消息处理队列中偏移量最大的消息与偏移量最小的消息的跨度超过2000延迟50毫秒后再拉取消息
+     *
      * Concurrently max span offset.it has no effect on sequential consumption
      */
     private int consumeConcurrentlyMaxSpan = 2000;
 
     /**
+     * 队列级别的流量控制阈值，每个消息队列默认最多缓存1000条消息
      * Flow control threshold on queue level, each message queue will cache at most 1000 messages by default,
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      */
     private int pullThresholdForQueue = 1000;
 
     /**
+     * 限制队列级别的缓存消息大小，每个消息队列默认最多缓存 100 MiB 消息
+     *
      * Limit the cached message size on queue level, each message queue will cache at most 100 MiB messages by default,
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      *
@@ -211,21 +234,25 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int pullThresholdSizeForTopic = -1;
 
     /**
+     * 推模式下拉取消息任务时间间隔，默认0ms,即上次拉取完毕紧跟下一次拉取
      * Message pull Interval
      */
     private long pullInterval = 0;
 
     /**
+     * 消息并发消费时一次消费消息条数，就是每次传入 MessageListener#consumerMessage 中的消息条数
      * Batch consumption size
      */
     private int consumeMessageBatchMaxSize = 1;
 
     /**
+     * 每次拉取消息条数的阈值，默认每次拉取32条
      * Batch pull size
      */
     private int pullBatchSize = 32;
 
     /**
+     * 是否每次拉取消息都更新订阅信息，默认 false
      * Whether update subscription relationship when every pull
      */
     private boolean postSubscriptionWhenPull = false;
@@ -236,6 +263,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private boolean unitMode = false;
 
     /**
+     * 最大消费重试次数
      * Max re-consume times. -1 means 16 times.
      * </p>
      *
@@ -245,11 +273,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int maxReconsumeTimes = -1;
 
     /**
+     * 延迟将该队列的消息提交到消费者线程等待时间，默认延迟1s
      * Suspending pulling time for cases requiring slow pulling like flow-control scenario.
      */
     private long suspendCurrentQueueTimeMillis = 1000;
 
     /**
+     * 消息消费超时时间，默认15min
      * Maximum amount of time in minutes a message may block the consuming thread.
      */
     private long consumeTimeout = 15;
@@ -264,6 +294,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private TraceDispatcher traceDispatcher = null;
 
+    /************************************ constructor *********************************/
+
     /**
      * Default constructor.
      */
@@ -276,7 +308,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * @param consumerGroup Consumer group.
      */
-    public DefaultMQPushConsumer(final String consumerGroup) {
+    public DefaultMQPushConsumer(String consumerGroup) {
         this(null, consumerGroup, null, new AllocateMessageQueueAveragely());
     }
 
@@ -286,10 +318,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param namespace Namespace for this MQ Producer instance.
      * @param consumerGroup Consumer group.
      */
-    public DefaultMQPushConsumer(final String namespace, final String consumerGroup) {
+    public DefaultMQPushConsumer(String namespace, String consumerGroup) {
         this(namespace, consumerGroup, null, new AllocateMessageQueueAveragely());
     }
-
 
     /**
      * Constructor specifying RPC hook.
@@ -307,7 +338,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param consumerGroup Consumer group.
      * @param rpcHook RPC hook to execute before each remoting command.
      */
-    public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
+    public DefaultMQPushConsumer(String namespace, String consumerGroup, RPCHook rpcHook) {
         this(namespace, consumerGroup, rpcHook, new AllocateMessageQueueAveragely());
     }
 
@@ -318,7 +349,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy Message queue allocating algorithm.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
+    public DefaultMQPushConsumer(String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this(null, consumerGroup, rpcHook, allocateMessageQueueStrategy);
     }
@@ -331,7 +362,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param rpcHook RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy Message queue allocating algorithm.
      */
-    public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
+    public DefaultMQPushConsumer(String namespace, String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
@@ -345,7 +376,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param consumerGroup Consumer group.
      * @param enableMsgTrace Switch flag instance for message trace.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace) {
+    public DefaultMQPushConsumer(String consumerGroup, boolean enableMsgTrace) {
         this(null, consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, null);
     }
 
@@ -356,10 +387,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param enableMsgTrace Switch flag instance for message trace.
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
+    public DefaultMQPushConsumer(String consumerGroup, boolean enableMsgTrace, String customizedTraceTopic) {
         this(null, consumerGroup, null, new AllocateMessageQueueAveragely(), enableMsgTrace, customizedTraceTopic);
     }
-
 
     /**
      * Constructor specifying consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
@@ -370,8 +400,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param enableMsgTrace Switch flag instance for message trace.
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
-    public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
+    public DefaultMQPushConsumer(
+        String consumerGroup, RPCHook rpcHook,
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+        boolean enableMsgTrace, String customizedTraceTopic) {
         this(null, consumerGroup, rpcHook, allocateMessageQueueStrategy, enableMsgTrace, customizedTraceTopic);
     }
 
@@ -385,8 +417,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param enableMsgTrace Switch flag instance for message trace.
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default trace topic name.
      */
-    public DefaultMQPushConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook,
-        AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
+    public DefaultMQPushConsumer(
+        String namespace, String consumerGroup, RPCHook rpcHook,
+        AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+        boolean enableMsgTrace, String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
@@ -403,6 +437,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
             }
         }
     }
+
+    /************************************ constructor *********************************/
 
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
@@ -484,12 +520,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Deprecated
     @Override
     public MessageExt viewMessage(String topic,
-        String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        String msgId) throws InterruptedException, MQClientException {
         try {
             MessageDecoder.decodeMessageId(msgId);
             return this.viewMessage(msgId);
         } catch (Exception e) {
-            // Ignore
+            /* Ignore */
         }
         return this.defaultMQPushConsumerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
     }
@@ -602,7 +638,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return pullThresholdForTopic;
     }
 
-    public void setPullThresholdForTopic(final int pullThresholdForTopic) {
+    public void setPullThresholdForTopic(int pullThresholdForTopic) {
         this.pullThresholdForTopic = pullThresholdForTopic;
     }
 
@@ -610,7 +646,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return pullThresholdSizeForQueue;
     }
 
-    public void setPullThresholdSizeForQueue(final int pullThresholdSizeForQueue) {
+    public void setPullThresholdSizeForQueue(int pullThresholdSizeForQueue) {
         this.pullThresholdSizeForQueue = pullThresholdSizeForQueue;
     }
 
@@ -618,7 +654,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return pullThresholdSizeForTopic;
     }
 
-    public void setPullThresholdSizeForTopic(final int pullThresholdSizeForTopic) {
+    public void setPullThresholdSizeForTopic(int pullThresholdSizeForTopic) {
         this.pullThresholdSizeForTopic = pullThresholdSizeForTopic;
     }
 
@@ -706,7 +742,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     /**
-     * Shut down this client and releasing underlying resources.
+     * Shutdown this client and releasing underlying resources.
      */
     @Override
     public void shutdown() {
@@ -779,7 +815,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @see org.apache.rocketmq.client.consumer.MessageSelector#byTag
      */
     @Override
-    public void subscribe(final String topic, final MessageSelector messageSelector) throws MQClientException {
+    public void subscribe(String topic, MessageSelector messageSelector) throws MQClientException {
         this.defaultMQPushConsumerImpl.subscribe(withNamespace(topic), messageSelector);
     }
 
@@ -871,7 +907,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return maxReconsumeTimes;
     }
 
-    public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
+    public void setMaxReconsumeTimes(int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
     }
 
@@ -879,7 +915,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return suspendCurrentQueueTimeMillis;
     }
 
-    public void setSuspendCurrentQueueTimeMillis(final long suspendCurrentQueueTimeMillis) {
+    public void setSuspendCurrentQueueTimeMillis(long suspendCurrentQueueTimeMillis) {
         this.suspendCurrentQueueTimeMillis = suspendCurrentQueueTimeMillis;
     }
 
@@ -887,7 +923,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         return consumeTimeout;
     }
 
-    public void setConsumeTimeout(final long consumeTimeout) {
+    public void setConsumeTimeout(long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
     }
 

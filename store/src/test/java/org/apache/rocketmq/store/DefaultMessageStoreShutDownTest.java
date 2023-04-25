@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.store;
 
-import java.io.File;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -29,6 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.io.File;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.spy;

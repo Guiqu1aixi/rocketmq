@@ -16,22 +16,6 @@
  */
 package org.apache.rocketmq.store.ha;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -41,7 +25,21 @@ import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageStatus;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
 public class HAService {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final AtomicInteger connectionCount = new AtomicInteger(0);
@@ -59,7 +57,7 @@ public class HAService {
 
     private final HAClient haClient;
 
-    public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
+    public HAService(DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService =
             new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
@@ -67,26 +65,27 @@ public class HAService {
         this.haClient = new HAClient();
     }
 
-    public void updateMasterAddress(final String newAddr) {
+    public void updateMasterAddress(String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateMasterAddress(newAddr);
         }
     }
 
-    public void putRequest(final CommitLog.GroupCommitRequest request) {
+    public void putRequest(CommitLog.GroupCommitRequest request) {
         this.groupTransferService.putRequest(request);
     }
 
-    public boolean isSlaveOK(final long masterPutWhere) {
+    public boolean isSlaveOK(long masterPutWhere) {
         boolean result = this.connectionCount.get() > 0;
         result =
-            result
-                && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
-                .getMessageStoreConfig().getHaSlaveFallbehindMax());
+            result && (
+                (masterPutWhere - this.push2SlaveMaxOffset.get())
+                    < this.defaultMessageStore.getMessageStoreConfig().getHaSlaveFallbehindMax()
+            );
         return result;
     }
 
-    public void notifyTransferSome(final long offset) {
+    public void notifyTransferSome(long offset) {
         for (long value = this.push2SlaveMaxOffset.get(); offset > value; ) {
             boolean ok = this.push2SlaveMaxOffset.compareAndSet(value, offset);
             if (ok) {
@@ -103,7 +102,7 @@ public class HAService {
     }
 
     // public void notifyTransferSome() {
-    // this.groupTransferService.notifyTransferSome();
+    //     this.groupTransferService.notifyTransferSome();
     // }
 
     public void start() throws Exception {
@@ -113,13 +112,13 @@ public class HAService {
         this.haClient.start();
     }
 
-    public void addConnection(final HAConnection conn) {
+    public void addConnection(HAConnection conn) {
         synchronized (this.connectionList) {
             this.connectionList.add(conn);
         }
     }
 
-    public void removeConnection(final HAConnection conn) {
+    public void removeConnection(HAConnection conn) {
         synchronized (this.connectionList) {
             this.connectionList.remove(conn);
         }
@@ -162,7 +161,7 @@ public class HAService {
         private ServerSocketChannel serverSocketChannel;
         private Selector selector;
 
-        public AcceptSocketService(final int port) {
+        public AcceptSocketService(int port) {
             this.socketAddressListen = new InetSocketAddress(port);
         }
 
@@ -184,7 +183,7 @@ public class HAService {
          * {@inheritDoc}
          */
         @Override
-        public void shutdown(final boolean interrupt) {
+        public void shutdown(boolean interrupt) {
             super.shutdown(interrupt);
             try {
                 this.serverSocketChannel.close();
@@ -616,4 +615,5 @@ public class HAService {
             return HAClient.class.getSimpleName();
         }
     }
+
 }
